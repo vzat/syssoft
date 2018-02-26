@@ -43,6 +43,16 @@ void unblockAccess() {
     exit(1);
 }
 
+void backupAndTransfer() {
+    // This should be in a fork called from main
+    // Fork for each process?
+    // Steps:
+    // 1. blockAccess
+    // 2. backup
+    // 3. transfer
+    // 4. unblockAccess
+}
+
 int main(void) {
     pid_t pid;
     int status;
@@ -73,6 +83,11 @@ int main(void) {
     }
     else if (pid == 0) {
         unblockAccess();
+    }
+
+    while (true) {
+        // Check if it's 2am ---> backup/transfer
+        // Check if manual update was triggered ---> backup/transfer
     }
 
     return 0;

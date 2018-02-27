@@ -52,7 +52,7 @@
 #dkms.conf
 
 *
-!*/
+!/**/
 !*.*
 !LICENSE
 *.o

@@ -18,12 +18,21 @@ void blockAccess() {
 }
 
 void backup() {
-    printf("Backing up LIVE\n\n");
+    printf("Backing up Live\n\n");
 
     // Trailing slash for the directories is necessary to copy just the contents!!!
     execlp("rsync", "rsync", "-avP", LIVE, BACKUP, NULL);
 
     perror("Cannot backup files");
+    exit(1);
+}
+
+void transfer() {
+    printf("Transfering changes from Intranet to Live\n\n");
+
+    execlp("rsync", "rsync", "-avP", INTRANET, LIVE, NULL);
+
+    perror("Cannot transfer changes to live");
     exit(1);
 }
 
@@ -54,6 +63,18 @@ void backupAndTransfer() {
     switch (fork()) {
         case 0:
             backup();
+        case -1:
+            perror("Error init fork");
+            exit(1);
+        default:
+            break;
+    }
+
+    wait(&status);
+
+    switch (fork()) {
+        case 0:
+            transfer();
         case -1:
             perror("Error init fork");
             exit(1);

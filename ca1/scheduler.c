@@ -3,12 +3,13 @@
 
 #include "timelib.h"
 
-void triggerBackup(int hour, int min, int sec) {
+void scheduleBackupAndTransfer(int hour, int min, int sec) {
 
     // Wait for scheduled time
     waitForTime(hour, min, sec);
 
     // Call backup & transfer
+    
 
     exit(EXIT_SUCCESS);
 }

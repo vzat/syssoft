@@ -20,7 +20,7 @@ int main(void) {
     getCurrentTime(now, dateSize);
     printf("Current Date: %s\n", now);
 
-    waitForTime(14, 17, 0);
+    waitForTime(15, 30, 0);
 
     getCurrentTime(now, dateSize);
     printf("Current Date: %s\n", now);

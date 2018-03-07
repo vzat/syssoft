@@ -2,14 +2,15 @@
 #include <stdlib.h>
 
 #include "timelib.h"
+#include "backupAndTransfer.h"
 
 void scheduleBackupAndTransfer(int hour, int min, int sec) {
 
-    // Wait for scheduled time
-    waitForTime(hour, min, sec);
+    while (1) {
+        // Wait for scheduled time
+        waitForTime(hour, min, sec);
 
-    // Call backup & transfer
-    
-
-    exit(EXIT_SUCCESS);
+        // Call backup & transfer
+        backupAndTransfer();
+    }
 }

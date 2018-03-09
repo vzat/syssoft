@@ -7,7 +7,9 @@
 #include <syslog.h>
 
 #include "macros.h"
-#include "timelib.h"
+#include "permissions.h"
+#include "backup.h"
+#include "transfer.h"
 
 int main (int argc, char **argv) {
 
@@ -19,6 +21,8 @@ int main (int argc, char **argv) {
     char buffer[MAX_BUF + 1];
 
     int terminate = 0;
+
+    int error = 0;
 
     // Message Queue Attributes
     queue_attributes.mq_flags = 0;
@@ -33,23 +37,99 @@ int main (int argc, char **argv) {
     mq = mq_open(QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &queue_attributes);
 
     do {
-        printf("%s\n\n", "New Loop");
+        printf("%s\n\n", "Loop");
 
         // Read message
         ssize_t bytes_read;
         bytes_read = mq_receive(mq, buffer, MAX_BUF, NULL);
         buffer[bytes_read] = '\0';
 
-        if (strstr(buffer, "backup")) {
-            // Backup and Transfer
-            printf("%s\n\n", "BACKUP");
+        printf("Buffer: %s\n\n", buffer);
+
+        if (strstr(buffer, "error")) {
+            error = 1;
+        }
+        else {
+            error = 0;
+        }
+
+        if (!strncmp(buffer, "backup", strlen("backup"))) {
+            // Block INTRANET access
+            switch (fork()) {
+                case 0:
+                    changeMode(INTRANET, "000");
+                    break;
+                case -1:
+                    syslog(LOG_ERR, "%s", "Cannot init fork");
+                    break;
+            }
+        }
+
+        if (!error && strstr(buffer, "permissions") && strstr(buffer, INTRANET) && strstr(buffer, "000")) {
+            // Block BACKUP access
+            switch (fork()) {
+                case 0:
+                    changeMode(BACKUP, "000");
+                    break;
+                case -1:
+                    syslog(LOG_ERR, "%s", "Cannot init fork");
+                    break;
+            }
+        }
+
+        if (!error && strstr(buffer, "permissions") && strstr(buffer, BACKUP) && strstr(buffer, "777")) {
+            // Backup
+            switch (fork()) {
+                case 0:
+                    backup();
+                    break;
+                case -1:
+                    syslog(LOG_ERR, "%s", "Cannot init fork");
+                    break;
+            }
+        }
+
+        if (!error && strstr(buffer, "backup")) {
+            // Transfer
+            switch (fork()) {
+                case 0:
+                    transfer();
+                    break;
+                case -1:
+                    syslog(LOG_ERR, "%s", "Cannot init fork");
+                    break;
+            }
+        }
+
+        if (!error && strstr(buffer, "transfer")) {
+            // Unblock INTRANET access
+            switch (fork()) {
+                case 0:
+                    changeMode(INTRANET, "777");
+                    break;
+                case -1:
+                    syslog(LOG_ERR, "%s", "Cannot init fork");
+                    break;
+            }
+        }
+
+        if (!error && strstr(buffer, "permissions") && strstr(buffer, "777")) {
+              // Unblock BACKUP access
+              switch (fork()) {
+                  case 0:
+                      changeMode(BACKUP, "777");
+                      break;
+                  case -1:
+                      syslog(LOG_ERR, "%s", "Cannot init fork");
+                      break;
+              }
         }
 
         // Log Status
-        if (!strcmp(buffer, "error")) {
+        if (strstr(buffer, "error")) {
             syslog(LOG_ERR, "%s", buffer);
         }
-        else {
+        else if (strstr(buffer, "success")) {
             syslog(LOG_INFO, "%s", buffer);
         }
 

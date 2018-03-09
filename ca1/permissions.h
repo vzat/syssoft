@@ -3,5 +3,6 @@
 
 void blockAccess();
 void unblockAccess();
+void changeMode(char *, char *);
 
 #endif // PERMISSIONS_H

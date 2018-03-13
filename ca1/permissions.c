@@ -34,7 +34,7 @@ void changeMode(char * dir, char * mode) {
     FILE *fp;
     int status;
 
-    sprintf(cmd, "chmod %s %s", mode, dir);
+    sprintf(cmd, "chmod -R %s %s", mode, dir);
 
     // Run command and get status
     fp = popen(cmd, "r");
@@ -51,6 +51,13 @@ void changeMode(char * dir, char * mode) {
     }
 
     mq_send(mq, buffer, strlen(buffer), 0);
-
     mq_close(mq);
+
+    // Exit with appropriate exit code
+    if (status == 0) {
+        exit(EXIT_SUCCESS);
+    }
+    else {
+        exit(EXIT_FAILURE);
+    }
 }

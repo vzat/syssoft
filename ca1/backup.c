@@ -24,6 +24,8 @@ void backup() {
     // Send status to message queue
     mq = mq_open(QUEUE_NAME, O_WRONLY);
 
+    printf("Status");
+
     if (status == 0) {
         sprintf(buffer, "success: backup: The website has been backed up");
     }
@@ -32,8 +34,15 @@ void backup() {
     }
 
     mq_send(mq, buffer, strlen(buffer), 0);
-
     mq_close(mq);
+
+    // Exit with appropriate exit code
+    if (status == 0) {
+        exit(EXIT_SUCCESS);
+    }
+    else {
+        exit(EXIT_FAILURE);
+    }
 
 
     // printf("Backing up Live\n\n");

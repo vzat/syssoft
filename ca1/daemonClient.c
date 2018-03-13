@@ -5,7 +5,7 @@
 
 #define MAX_BUF 1024
 
-int main(int argc, char **argv) {
+int main (int argc, char **argv) {
     mqd_t mq;
 
     char buffer[MAX_BUF];
@@ -29,7 +29,8 @@ int main(int argc, char **argv) {
 
         memset(buffer, 0, MAX_BUF);
         fgets(buffer, MAX_BUF, stdin);
-        mq_send(mq, buffer, MAX_BUF, 0);
+        int returnValue = mq_send(mq, buffer, MAX_BUF, 0);
+        printf("Status: %d\n", returnValue);
     } while (strncmp(buffer, "quit", strlen("quit")));
 
     mq_close(mq);

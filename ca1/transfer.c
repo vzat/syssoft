@@ -31,9 +31,15 @@ void transfer() {
     }
 
     mq_send(mq, buffer, strlen(buffer), 0);
-
     mq_close(mq);
 
+    // Exit with appropriate exit code
+    if (status == 0) {
+        exit(EXIT_SUCCESS);
+    }
+    else {
+        exit(EXIT_FAILURE);
+    }
 
     // printf("Transfering changes from Intranet to Live\n\n");
     //

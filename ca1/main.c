@@ -34,6 +34,7 @@ int main (int argc, char **argv) {
     openlog("serverdaemon", LOG_PID | LOG_CONS, LOG_USER);
 
     // Create Queue
+    mq_unlink(QUEUE_NAME);
     mq = mq_open(QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &queue_attributes);
 
     do {
@@ -43,8 +44,6 @@ int main (int argc, char **argv) {
         ssize_t bytes_read;
         bytes_read = mq_receive(mq, buffer, MAX_BUF, NULL);
         buffer[bytes_read] = '\0';
-
-        printf("Buffer: %s\n\n", buffer);
 
         if (strstr(buffer, "error")) {
             error = 1;
@@ -128,9 +127,11 @@ int main (int argc, char **argv) {
         // Log Status
         if (strstr(buffer, "error")) {
             syslog(LOG_ERR, "%s", buffer);
+            printf("%s", buffer);
         }
         else if (strstr(buffer, "success")) {
             syslog(LOG_INFO, "%s", buffer);
+            printf("%s", buffer);
         }
 
         // Terminate Daemon

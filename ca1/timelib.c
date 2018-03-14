@@ -13,7 +13,7 @@ void getCurrentTime(char * nowString, size_t stringSize) {
     time(&now);
     nowInfo = localtime(&now);
 
-    strftime(nowString, stringSize, "%d/%m/%Y %H:%M:%S", nowInfo);
+    strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
 }
 
 void waitForTime(int hour, int min, int sec) {

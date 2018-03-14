@@ -28,9 +28,11 @@ void backupAndTransferError() {
     mq_close(mq);
 }
 
-void backupAndTransfer () {
+void backupAndTransfer (char * lastLogTime) {
     int status;
     pid_t pid;
+
+    logChanges(lastLogTime);
 
     // Block INTRANET access
     syslog(LOG_INFO, "<info> daemon: Changing INTRANET permissions to 000");
@@ -169,9 +171,12 @@ int main (int argc, char **argv) {
     char buffer[MAX_BUF + 1];
 
     int terminate = 0;
-
-    int error = 0;
     int backupBlocked = 0;
+
+    // Get the current time
+    size_t max_date = sizeof(char) * MAX_DATE;
+    char * lastLogTime = malloc(max_date);
+    getCurrentTime(lastLogTime, max_date);
 
     // Create log
     openlog("serverdaemon", LOG_PID | LOG_CONS, LOG_USER);
@@ -197,8 +202,6 @@ int main (int argc, char **argv) {
         syslog(LOG_INFO, "<info> daemon: The daemon has been initialised");
     }
 
-    logChanges("date");
-
     do {
         // Read message
         ssize_t bytes_read;
@@ -213,7 +216,7 @@ int main (int argc, char **argv) {
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
             switch (fork()) {
                 case 0:
-                    backupAndTransfer();
+                    backupAndTransfer(lastLogTime);
                     break;
                 case -1:
                     syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));

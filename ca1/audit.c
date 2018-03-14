@@ -48,10 +48,6 @@ void logChanges(char * lastLogTime) {
     FILE *fp;
     int status;
 
-    size_t max_date = sizeof(char) * MAX_DATE;
-    char * now = malloc(max_date);
-    getCurrentDate(now, max_date);
-
     // Remove trailing slash if it exists
     char * tempIntranet;
     if (strlen(strrchr(INTRANET, '/')) == 1) {
@@ -63,9 +59,18 @@ void logChanges(char * lastLogTime) {
         strncpy(tempIntranet, INTRANET, strlen(INTRANET));
     }
 
-    sprintf(cmd, "ausearch -f %s", tempIntranet);
+    // Get all records from the last check
+    sprintf(cmd, "ausearch -f %s -ts %s -i -l", tempIntranet, lastLogTime);
 
-    free(now);
+    fp = popen(cmd, "r");
+
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        syslog(LOG_INFO, "LOG: %s", buffer);
+    }
+
+    // Update the lastLogTime
+    size_t max_date = sizeof(char) * MAX_DATE;
+    getCurrentTime(lastLogTime, max_date);
 }
 
 

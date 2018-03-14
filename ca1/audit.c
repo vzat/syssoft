@@ -60,6 +60,7 @@ void logChanges(char * lastLogTime) {
     }
 
     // Get all records from the last check
+    // sprintf(cmd, "ausearch -f %s -ts %s -i -l > %s%s.txt", tempIntranet, lastLogTime, BASE_PATH, lastLogTime);
     sprintf(cmd, "ausearch -f %s -ts %s -i -l", tempIntranet, lastLogTime);
 
     fp = popen(cmd, "r");

@@ -17,17 +17,17 @@ void transfer() {
     sprintf(cmd, "rsync -avP %s %s", INTRANET, LIVE);
 
     // Run command and get status
-    fp = fopen(cmd, "r");
+    fp = popen(cmd, "r");
     status = pclose(fp);
 
     // Send status to message queue
     mq = mq_open(QUEUE_NAME, O_WRONLY);
 
     if (status == 0) {
-        sprintf(buffer, "success: transfer: The website has been updated");
+        sprintf(buffer, "<success> transfer: The website has been updated");
     }
     else {
-        sprintf(buffer, "error: transfer: The website cannot be updated");
+        sprintf(buffer, "<error> transfer: The website cannot be updated. Returned value %d", status);
     }
 
     mq_send(mq, buffer, strlen(buffer), 0);
@@ -40,11 +40,4 @@ void transfer() {
     else {
         exit(EXIT_FAILURE);
     }
-
-    // printf("Transfering changes from Intranet to Live\n\n");
-    //
-    // execlp("rsync", "rsync", "-avP", INTRANET, LIVE, NULL);
-    //
-    // perror("Cannot transfer changes to live");
-    // exit(1);
 }

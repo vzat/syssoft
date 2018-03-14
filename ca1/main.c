@@ -16,7 +16,7 @@ void backupAndTransferError() {
     // Send status to daemon
     mqd_t mq;
     mq = mq_open(QUEUE_NAME, O_WRONLY);
-    mq_send(mq, "error: Backup and Transfer cannot be completed", strlen("error: Backup and Transfer cannot be completed"), 0);
+    mq_send(mq, "<error> daemon: Backup and Transfer cannot be completed", strlen("<error> daemon: Backup and Transfer cannot be completed"), 0);
     mq_close(mq);
 }
 
@@ -25,21 +25,18 @@ void backupAndTransfer () {
     pid_t pid;
 
     // Block INTRANET access
-    syslog(LOG_INFO, "Changing INTRANET permissions to 000");
+    syslog(LOG_INFO, "<info> daemon: Changing INTRANET permissions to 000");
     pid = fork();
     switch (pid) {
         case 0:
             changeMode(INTRANET, "000");
-            printf("???");
             break;
         case -1:
-            syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
             break;
     }
 
-    // wait(&status);
     waitpid(pid, &status, 0);
-    syslog(LOG_INFO, "Status: %d", status);
 
     // Send error message to daemon
     if (status != 0) {
@@ -48,19 +45,18 @@ void backupAndTransfer () {
     }
 
     // Block BACKUP access
-    syslog(LOG_INFO, "Changing BACKUP permissions to 000");
+    syslog(LOG_INFO, "<info> daemon: Changing BACKUP permissions to 000");
     pid = fork();
     switch (pid) {
         case 0:
             changeMode(BACKUP, "000");
             break;
         case -1:
-            syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
             break;
     }
 
     waitpid(pid, &status, 0);
-    syslog(LOG_INFO, "Status: %d", status);
 
     // Send error message to daemon
     if (status != 0) {
@@ -69,19 +65,18 @@ void backupAndTransfer () {
     }
 
     // Backup
-    syslog(LOG_INFO, "Backup data");
+    syslog(LOG_INFO, "<info> daemon: Backup data");
     pid = fork();
     switch (pid) {
         case 0:
             backup();
             break;
         case -1:
-            syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
             break;
     }
 
     waitpid(pid, &status, 0);
-    syslog(LOG_INFO, "Status: %d", status);
 
     // Send error message to daemon
     if (status != 0) {
@@ -90,19 +85,18 @@ void backupAndTransfer () {
     }
 
     // Transfer
-    syslog(LOG_INFO, "Transfer the new files from intranet to live");
+    syslog(LOG_INFO, "<info> daemon: Transfer the new files from intranet to live");
     pid = fork();
     switch (pid) {
         case 0:
             transfer();
             break;
         case -1:
-            syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
             break;
     }
 
     waitpid(pid, &status, 0);
-    syslog(LOG_INFO, "Status: %d", status);
 
     // Send error message to daemon
     if (status != 0) {
@@ -111,19 +105,18 @@ void backupAndTransfer () {
     }
 
     // Unblock INTRANET access
-    syslog(LOG_INFO, "Changing INTRANET permissions to 777");
+    syslog(LOG_INFO, "<info> daemon: Changing INTRANET permissions to 777");
     pid = fork();
     switch (pid) {
         case 0:
             changeMode(INTRANET, "777");
             break;
         case -1:
-            syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
             break;
     }
 
     waitpid(pid, &status, 0);
-    syslog(LOG_INFO, "Status: %d", status);
 
     // Send error message to daemon
     if (status != 0) {
@@ -132,19 +125,18 @@ void backupAndTransfer () {
     }
 
     // Unblock BACKUP access
-    syslog(LOG_INFO, "Changing BACKUP permissions to 777");
+    syslog(LOG_INFO, "<info> daemon: Changing BACKUP permissions to 777");
     pid = fork();
     switch (pid) {
         case 0:
             changeMode(BACKUP, "777");
             break;
         case -1:
-            syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
             break;
     }
 
     waitpid(pid, &status, 0);
-    syslog(LOG_INFO, "Status: %d", status);
 
     // Send error message to daemon
     if (status != 0) {
@@ -155,7 +147,7 @@ void backupAndTransfer () {
     // Send status to daemon
     mqd_t mq;
     mq = mq_open(QUEUE_NAME, O_WRONLY);
-    mq_send(mq, "done: Backup and Transfer has been completed", strlen("done: Backup and Transfer has been completed"), 0);
+    mq_send(mq, "<done> daemon: Backup and Transfer has been completed", strlen("<done> daemon: Backup and Transfer has been completed"), 0);
     mq_close(mq);
 }
 
@@ -183,11 +175,11 @@ int main (int argc, char **argv) {
     queue_attributes.mq_curmsgs = 0;
 
     // Create Queue
-    syslog(LOG_INFO, "Creating Message Queue %s", QUEUE_NAME);
+    syslog(LOG_INFO, "<info> daemon: Creating Message Queue %s", QUEUE_NAME);
     mq = mq_open(QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &queue_attributes);
 
     if (mq == -1) {
-        syslog(LOG_INFO, "Cannot create queue: %s", strerror(errno));
+        syslog(LOG_INFO, "<error> daemon: Cannot create queue: %s", strerror(errno));
     }
 
     do {
@@ -197,14 +189,7 @@ int main (int argc, char **argv) {
         bytes_read = mq_receive(mq, buffer, MAX_BUF, NULL);
         buffer[bytes_read] = '\0';
 
-        if (strstr(buffer, "error")) {
-            error = 1;
-        }
-        else {
-            error = 0;
-        }
-
-        if (error || strstr(buffer, "done")) {
+        if (strstr(buffer, "error") || strstr(buffer, "done")) {
             backupBlocked = 0;
         }
 
@@ -214,7 +199,7 @@ int main (int argc, char **argv) {
                     backupAndTransfer();
                     break;
                 case -1:
-                    syslog(LOG_ERR, "%s: %s", "Cannot init fork", strerror(errno));
+                    syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
                     break;
             }
         }
@@ -223,7 +208,7 @@ int main (int argc, char **argv) {
         if (strstr(buffer, "error")) {
             syslog(LOG_ERR, "%s", buffer);
         }
-        else if (strstr(buffer, "success")) {
+        else if (strchr(buffer, '<') && strchr(buffer, '>')) {
             syslog(LOG_INFO, "%s", buffer);
         }
 

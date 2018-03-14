@@ -44,10 +44,10 @@ void changeMode(char * dir, char * mode) {
     mq = mq_open(QUEUE_NAME, O_WRONLY);
 
     if (status == 0) {
-        sprintf(buffer, "success: permissions: Changed mode of directory %s to %s", dir, mode);
+        sprintf(buffer, "<success> permissions: Changed mode of directory %s to %s", dir, mode);
     }
     else {
-        sprintf(buffer, "error: permissions: Cannot change mode of directory %s to %s", dir, mode);
+        sprintf(buffer, "<error> permissions: Cannot change mode of directory %s to %s. Returned value %d", dir, mode, status);
     }
 
     mq_send(mq, buffer, strlen(buffer), 0);

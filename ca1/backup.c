@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <mqueue.h>
+#include <syslog.h>
 
 #include "macros.h"
 
@@ -18,19 +19,17 @@ void backup() {
     sprintf(cmd, "rsync -avP %s %s", LIVE, BACKUP);
 
     // Run command and get status
-    fp = fopen(cmd, "r");
+    fp = popen(cmd, "r");
     status = pclose(fp);
 
     // Send status to message queue
     mq = mq_open(QUEUE_NAME, O_WRONLY);
 
-    printf("Status");
-
     if (status == 0) {
-        sprintf(buffer, "success: backup: The website has been backed up");
+        sprintf(buffer, "<success> backup: The website has been backed up");
     }
     else {
-        sprintf(buffer, "error: backup: The website cannot be backed up");
+        sprintf(buffer, "<error> backup: The website cannot be backed up. Returned value %d", status);
     }
 
     mq_send(mq, buffer, strlen(buffer), 0);
@@ -43,13 +42,4 @@ void backup() {
     else {
         exit(EXIT_FAILURE);
     }
-
-
-    // printf("Backing up Live\n\n");
-    //
-    // // Trailing slash for the directories is necessary to copy just the contents!!!
-    // execlp("rsync", "rsync", "-avP", LIVE, BACKUP, NULL);
-    //
-    // perror("Cannot backup files");
-    // exit(1);
 }

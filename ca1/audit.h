@@ -1,7 +1,7 @@
 #ifndef AUDIT_H
 #define AUDIT_H
 
-void initAudit();
+int setupAudit();
 void logChanges(char *);
 
 #endif // AUDIT_H

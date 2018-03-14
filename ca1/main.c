@@ -11,6 +11,13 @@
 #include "permissions.h"
 #include "backup.h"
 #include "transfer.h"
+#include "audit.h"
+
+int setupDaemon() {
+    if (setupAudit() == -1) {
+        return -1;
+    }
+}
 
 void backupAndTransferError() {
     // Send status to daemon
@@ -180,6 +187,13 @@ int main (int argc, char **argv) {
 
     if (mq == -1) {
         syslog(LOG_INFO, "<error> daemon: Cannot create queue: %s", strerror(errno));
+    }
+
+    if (setupDaemon() == -1) {
+        syslog(LOG_ERR, "<error> daemon: Cannot initialise daemon");
+    }
+    else {
+        syslog(LOG_INFO, "<info> daemon: The daemon has been initialised");
     }
 
     do {

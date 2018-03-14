@@ -14,6 +14,7 @@
 #include "audit.h"
 
 int setupDaemon() {
+    // Setup audit daemon
     if (setupAudit() == -1) {
         return -1;
     }
@@ -195,6 +196,8 @@ int main (int argc, char **argv) {
     else {
         syslog(LOG_INFO, "<info> daemon: The daemon has been initialised");
     }
+
+    logChanges("date");
 
     do {
         // Read message

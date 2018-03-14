@@ -4,13 +4,13 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <time.h>
+#include <mqueue.h>
+#include <syslog.h>
 
 #include "macros.h"
 #include "timelib.h"
 
 int setupAudit() {
-    // auditd
-
     char cmd[MAX_CMD];
 
     FILE *fp;
@@ -40,6 +40,32 @@ int setupAudit() {
 
 void logChanges(char * lastLogTime) {
     // ausearch from last log time (size of MAX_DATE)
+
+    mqd_t mq;
+    char buffer[MAX_BUF];
+    char cmd[MAX_CMD];
+
+    FILE *fp;
+    int status;
+
+    size_t max_date = sizeof(char) * MAX_DATE;
+    char * now = malloc(max_date);
+    getCurrentDate(now, max_date);
+
+    // Remove trailing slash if it exists
+    char * tempIntranet;
+    if (strlen(strrchr(INTRANET, '/')) == 1) {
+        tempIntranet = malloc(sizeof(char) * strlen(INTRANET));
+        strncpy(tempIntranet, INTRANET, strlen(INTRANET) - 1);
+    }
+    else {
+        tempIntranet = malloc(sizeof(char) * strlen(INTRANET) + 1);
+        strncpy(tempIntranet, INTRANET, strlen(INTRANET));
+    }
+
+    sprintf(cmd, "ausearch -f %s", tempIntranet);
+
+    free(now);
 }
 
 

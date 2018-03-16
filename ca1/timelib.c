@@ -76,7 +76,7 @@ void waitForTime (int hour, int min, int sec, char * message, size_t messageSize
     strftime(nowString, stringSize, "%d/%m/%Y %H:%M:%S", triggerTime);
 
     char * buffer = (char *) malloc(MAX_BUF);
-    sprintf(buffer, "<info> The task \"%s\" is scheduled to run at %s", message, nowString);
+    sprintf(buffer, "<info> timelib: The task \"%s\" is scheduled to run at %s", message, nowString);
 
     // Send log message
     mq = mq_open(QUEUE_NAME, O_WRONLY);
@@ -93,9 +93,17 @@ void waitForTime (int hour, int min, int sec, char * message, size_t messageSize
         seconds = difftime(now, mktime(triggerTime));
     } while (seconds < 0);
 
+    sleep(1);
+
+    buffer = (char *) malloc(MAX_BUF);
+    sprintf(buffer, "<info> timelib: The scheduled task \"%s\" will now run (RUN-TASK)", message);
+
     mq = mq_open(QUEUE_NAME, O_WRONLY);
     mq_send(mq, message, messageSize, 0);
+    mq_send(mq, buffer, strlen(buffer), 0);
     mq_close(mq);
+
+    free(buffer);
 
     exit(EXIT_SUCCESS);
 }

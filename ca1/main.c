@@ -189,11 +189,10 @@ int main (int argc, char **argv) {
     int terminate = 0;
     int backupBlocked = 0;
 
-    // Get the current time
-    // size_t max_date = sizeof(char) * MAX_DATE;
-    // char * lastLogTime = malloc(max_date);
+    char * scheduledMessage = "backup";
+
+    // Set the current time as the last log message
     setCurrentTime();
-    // getCurrentTime(lastLogTime, max_date);
 
     // Create log
     openlog(IDENT, LOG_PID | LOG_CONS, LOG_USER);
@@ -228,11 +227,10 @@ int main (int argc, char **argv) {
     // Create audit and logs directories
     mkdir(AUDIT_PATH, 0777);
 
-    // Schedule back
-    char * message = "backup";
+    // Schedule backup
     switch (fork()) {
         case 0:
-            waitForTime(21, 33, 00, message, strlen(message));
+            waitForTime(21, 52, 00, scheduledMessage, strlen(scheduledMessage));
             break;
         case -1:
             syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
@@ -255,6 +253,18 @@ int main (int argc, char **argv) {
         // Set the current time as the start time for the next log
         if (strstr(buffer, "done")) {
             setCurrentTime();
+        }
+
+        if (strstr(buffer, "RUN-TASK")) {
+            // Schedule task for the next day
+            switch (fork()) {
+                case 0:
+                    waitForTime(21, 52, 00, scheduledMessage, strlen(scheduledMessage));
+                    break;
+                case -1:
+                    syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
+                    break;
+            }
         }
 
         // If a backup message is received from the message queue

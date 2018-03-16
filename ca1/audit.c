@@ -41,10 +41,10 @@ int setupAudit() {
 void logChanges(char * lastLogTime) {
     // ausearch from last log time (size of MAX_DATE)
 
-    mqd_t mq;
+    // mqd_t mq;
     size_t max_date = sizeof(char) * MAX_DATE;
 
-    char buffer[MAX_BUF];
+    // char buffer[MAX_BUF];
     char cmd[MAX_CMD];
 
     FILE *fp;

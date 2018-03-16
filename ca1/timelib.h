@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 void getCurrentTime(char *, size_t);
+void setCurrentTime();
 void getCurrentTimeFileNameSafe(char *, size_t);
 void waitForTime(int, int, int);
 

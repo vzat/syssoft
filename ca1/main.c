@@ -15,6 +15,8 @@
 #include "audit.h"
 #include "timelib.h"
 
+extern char * commonTime;
+
 void backupAndTransferError () {
     // Send status to daemon
     mqd_t mq;
@@ -23,11 +25,9 @@ void backupAndTransferError () {
     mq_close(mq);
 }
 
-void backupAndTransfer (char * lastLogTime) {
+void backupAndTransfer () {
     int status;
     pid_t pid;
-
-    logChanges(lastLogTime);
 
     // Block INTRANET access
     syslog(LOG_INFO, "<info> daemon: Changing INTRANET permissions to 000");
@@ -149,6 +149,8 @@ void backupAndTransfer (char * lastLogTime) {
         return;
     }
 
+    // logChanges(lastLogTime);
+
     // Send status to daemon
     mqd_t mq;
     mq = mq_open(QUEUE_NAME, O_WRONLY);
@@ -219,10 +221,19 @@ int main (int argc, char **argv) {
             backupBlocked = 0;
         }
 
+        if (strstr(buffer, "done")) {
+            // 
+            // setCurrentTime();
+            //
+            // printf("Before: %s\n", lastLogTime);
+            // getCurrentTime(lastLogTime, max_date);
+            // printf("After: %s\n", lastLogTime);
+        }
+
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
             switch (fork()) {
                 case 0:
-                    backupAndTransfer(lastLogTime);
+                    backupAndTransfer();
                     break;
                 case -1:
                     syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
@@ -230,7 +241,7 @@ int main (int argc, char **argv) {
             }
         }
 
-        syslog(LOG_INFO, "daemon: backup time %s", lastLogTime);
+        // syslog(LOG_INFO, "daemon: backup time %s", lastLogTime);
         printf("backup time: %s\n", lastLogTime);
 
         // Log Status

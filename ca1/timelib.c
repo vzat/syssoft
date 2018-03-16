@@ -3,24 +3,63 @@
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
+#include <syslog.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "macros.h"
 
 void getCurrentTime (char * nowString, size_t stringSize) {
+    // time_t now;
+    // struct tm * nowInfo;
+    //
+    // time(&now);
+    // nowInfo = localtime(&now);
+    //
+    // // memset(nowString, 0, stringSize);
+    // // strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    //
+    //
+    // char * tempString = malloc(stringSize);
+    // strftime(tempString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    //
+    //
+    // syslog(LOG_INFO, "---> %s %s", nowString, tempString);
+    //
+    //
+    // // strcpy(nowString, tempString);
+    // memcpy(nowString, tempString, stringSize);
+    //
+    // syslog(LOG_INFO, "------> %s %s", nowString, tempString);
+    //
+    // free(tempString);
+
+    int fd;
+    char * fifoFile = FIFO_PATH;
+    fd = open(fifoFile, O_RDONLY);
+    read(fd, nowString, stringSize);
+    close(fd);
+}
+
+void setCurrentTime () {
     time_t now;
     struct tm * nowInfo;
 
     time(&now);
     nowInfo = localtime(&now);
 
-    // memset(nowString, 0, stringSize);
-    strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    char * fifoFile = FIFO_PATH;
+    mkfifo(fifoFile, 0666);
 
+    int fd = open(fifoFile, O_WRONLY);
 
-    // char * tempString = malloc(stringSize);
-    // strftime(tempString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
-    // strcpy(nowString, tempString);
-    // free(tempString);
+    size_t max_date = sizeof(char) * MAX_DATE;
+    char * timeString = malloc(max_date);
+    strftime(timeString, max_date, "%d/%m/%y %H:%M:%S\n", nowInfo);
+    write(fd, timeString, strlen(timeString));
+
+    close(fd);
+    free(timeString);
 }
 
 void getCurrentTimeFileNameSafe (char * nowString, size_t stringSize) {

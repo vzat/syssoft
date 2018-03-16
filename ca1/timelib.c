@@ -34,31 +34,53 @@ void getCurrentTime (char * nowString, size_t stringSize) {
     //
     // free(tempString);
 
-    int fd;
-    char * fifoFile = FIFO_PATH;
-    fd = open(fifoFile, O_RDONLY);
-    read(fd, nowString, stringSize);
-    close(fd);
+    // int fd;
+    // char * fifoFile = FIFO_PATH;
+    // fd = open(fifoFile, O_RDONLY);
+    // read(fd, nowString, stringSize);
+    // close(fd);
+
+    FILE * fp;
+    fp = fopen(LAST_AUDIT_TIME_PATH, "r");
+    fread(nowString, stringSize, 1, fp);
+    fclose(fp);
 }
 
 void setCurrentTime () {
+    // time_t now;
+    // struct tm * nowInfo;
+    //
+    // time(&now);
+    // nowInfo = localtime(&now);
+    //
+    // char * fifoFile = FIFO_PATH;
+    // mkfifo(fifoFile, 0666);
+    //
+    // int fd = open(fifoFile, O_WRONLY);
+    //
+    // size_t max_date = sizeof(char) * MAX_DATE;
+    // char * timeString = malloc(max_date);
+    // strftime(timeString, max_date, "%d/%m/%y %H:%M:%S\n", nowInfo);
+    // write(fd, timeString, strlen(timeString));
+    //
+    // close(fd);
+    // free(timeString);
+
     time_t now;
     struct tm * nowInfo;
 
     time(&now);
     nowInfo = localtime(&now);
 
-    char * fifoFile = FIFO_PATH;
-    mkfifo(fifoFile, 0666);
-
-    int fd = open(fifoFile, O_WRONLY);
+    FILE * fp;
+    fp = fopen(LAST_AUDIT_TIME_PATH, "w");
 
     size_t max_date = sizeof(char) * MAX_DATE;
     char * timeString = malloc(max_date);
     strftime(timeString, max_date, "%d/%m/%y %H:%M:%S\n", nowInfo);
-    write(fd, timeString, strlen(timeString));
+    fwrite(timeString, strlen(timeString), 1, fp);
 
-    close(fd);
+    fclose(fp);
     free(timeString);
 }
 

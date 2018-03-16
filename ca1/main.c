@@ -149,7 +149,7 @@ void backupAndTransfer () {
         return;
     }
 
-    // logChanges(lastLogTime);
+    logChanges();
 
     // Send status to daemon
     mqd_t mq;
@@ -171,9 +171,10 @@ int main (int argc, char **argv) {
     int backupBlocked = 0;
 
     // Get the current time
-    size_t max_date = sizeof(char) * MAX_DATE;
-    char * lastLogTime = malloc(max_date);
-    getCurrentTime(lastLogTime, max_date);
+    // size_t max_date = sizeof(char) * MAX_DATE;
+    // char * lastLogTime = malloc(max_date);
+    setCurrentTime();
+    // getCurrentTime(lastLogTime, max_date);
 
     // Create log
     openlog("serverdaemon", LOG_PID | LOG_CONS, LOG_USER);
@@ -222,12 +223,7 @@ int main (int argc, char **argv) {
         }
 
         if (strstr(buffer, "done")) {
-            // 
-            // setCurrentTime();
-            //
-            // printf("Before: %s\n", lastLogTime);
-            // getCurrentTime(lastLogTime, max_date);
-            // printf("After: %s\n", lastLogTime);
+            setCurrentTime();
         }
 
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
@@ -240,9 +236,6 @@ int main (int argc, char **argv) {
                     break;
             }
         }
-
-        // syslog(LOG_INFO, "daemon: backup time %s", lastLogTime);
-        printf("backup time: %s\n", lastLogTime);
 
         // Log Status
         if (strstr(buffer, "error")) {
@@ -258,7 +251,7 @@ int main (int argc, char **argv) {
         }
     } while (!terminate);
 
-    free(lastLogTime);
+    // free(lastLogTime);
     mq_close(mq);
     mq_unlink(QUEUE_NAME);
     closelog();

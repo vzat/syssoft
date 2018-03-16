@@ -2,6 +2,6 @@
 #define AUDIT_H
 
 int setupAudit();
-void logChanges(char *);
+void logChanges();
 
 #endif // AUDIT_H

@@ -38,7 +38,7 @@ int setupAudit() {
     return status;
 }
 
-void logChanges(char * lastLogTime) {
+void logChanges() {
     // ausearch from last log time (size of MAX_DATE)
 
     // mqd_t mq;
@@ -62,15 +62,20 @@ void logChanges(char * lastLogTime) {
     }
 
     // Get filename safe time
-
     char * timeFileNameSafe = malloc(max_date);
     getCurrentTimeFileNameSafe(timeFileNameSafe, max_date);
+
+    // Get last log time
+    char * lastLogTime = malloc(max_date);
+    getCurrentTime(lastLogTime, max_date);
+    syslog(LOG_INFO, "%s", lastLogTime);
 
     // Get all records from the last check
     sprintf(cmd, "ausearch -f %s -ts %s -i -l > %s%s.txt", tempIntranet, lastLogTime, AUDIT_PATH, timeFileNameSafe);
     // sprintf(cmd, "ausearch -f %s -ts %s -i -l", tempIntranet, lastLogTime);
 
     free(timeFileNameSafe);
+    free(lastLogTime);
 
     // syslog(LOG_INFO, "Before %s", lastLogTime);
 
@@ -84,7 +89,7 @@ void logChanges(char * lastLogTime) {
     // }
 
     // Update the lastLogTime
-    getCurrentTime(lastLogTime, max_date);
+    // getCurrentTime(lastLogTime, max_date);
 
     // syslog(LOG_INFO, "After %s", lastLogTime);
 }

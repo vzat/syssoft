@@ -6,66 +6,11 @@
 #include <syslog.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <mqueue.h>
 
 #include "macros.h"
 
-void getCurrentTime (char * nowString, size_t stringSize) {
-    // time_t now;
-    // struct tm * nowInfo;
-    //
-    // time(&now);
-    // nowInfo = localtime(&now);
-    //
-    // // memset(nowString, 0, stringSize);
-    // // strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
-    //
-    //
-    // char * tempString = malloc(stringSize);
-    // strftime(tempString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
-    //
-    //
-    // syslog(LOG_INFO, "---> %s %s", nowString, tempString);
-    //
-    //
-    // // strcpy(nowString, tempString);
-    // memcpy(nowString, tempString, stringSize);
-    //
-    // syslog(LOG_INFO, "------> %s %s", nowString, tempString);
-    //
-    // free(tempString);
-
-    // int fd;
-    // char * fifoFile = FIFO_PATH;
-    // fd = open(fifoFile, O_RDONLY);
-    // read(fd, nowString, stringSize);
-    // close(fd);
-
-    FILE * fp;
-    fp = fopen(LAST_LOG_TIME_PATH, "r");
-    fread(nowString, stringSize, 1, fp);
-    fclose(fp);
-}
-
 void setCurrentTime () {
-    // time_t now;
-    // struct tm * nowInfo;
-    //
-    // time(&now);
-    // nowInfo = localtime(&now);
-    //
-    // char * fifoFile = FIFO_PATH;
-    // mkfifo(fifoFile, 0666);
-    //
-    // int fd = open(fifoFile, O_WRONLY);
-    //
-    // size_t max_date = sizeof(char) * MAX_DATE;
-    // char * timeString = malloc(max_date);
-    // strftime(timeString, max_date, "%d/%m/%y %H:%M:%S\n", nowInfo);
-    // write(fd, timeString, strlen(timeString));
-    //
-    // close(fd);
-    // free(timeString);
-
     time_t now;
     struct tm * nowInfo;
 
@@ -84,6 +29,13 @@ void setCurrentTime () {
     free(timeString);
 }
 
+void getCurrentTime (char * nowString, size_t stringSize) {
+    FILE * fp;
+    fp = fopen(LAST_LOG_TIME_PATH, "r");
+    fread(nowString, stringSize, 1, fp);
+    fclose(fp);
+}
+
 void getCurrentTimeFileNameSafe (char * nowString, size_t stringSize) {
     time_t now;
     struct tm * nowInfo;
@@ -95,9 +47,10 @@ void getCurrentTimeFileNameSafe (char * nowString, size_t stringSize) {
     strftime(nowString, stringSize, "%d-%m-%yT%H-%M-%S", nowInfo);
 }
 
-void waitForTime (int hour, int min, int sec) {
-    time_t now;
+void waitForTime (int hour, int min, int sec, char * message, size_t messageSize) {
+    mqd_t mq;
 
+    time_t now;
     struct tm * triggerTime;
 
     time(&now);
@@ -121,8 +74,17 @@ void waitForTime (int hour, int min, int sec) {
     size_t stringSize = sizeof(char) * MAX_DATE;
     char * nowString = (char *) malloc(stringSize);
     strftime(nowString, stringSize, "%d/%m/%Y %H:%M:%S", triggerTime);
-    printf("Next schedule date: %s\n\n", nowString);
+
+    char * buffer = (char *) malloc(MAX_BUF);
+    sprintf(buffer, "<info> The task \"%s\" is scheduled to run at %s", message, nowString);
+
+    // Send log message
+    mq = mq_open(QUEUE_NAME, O_WRONLY);
+    mq_send(mq, buffer, strlen(buffer), 0);
+    mq_close(mq);
+
     free(nowString);
+    free(buffer);
 
     // Loop until time is reached
     do {
@@ -131,5 +93,9 @@ void waitForTime (int hour, int min, int sec) {
         seconds = difftime(now, mktime(triggerTime));
     } while (seconds < 0);
 
-    printf("Time Reached\n\n");
+    mq = mq_open(QUEUE_NAME, O_WRONLY);
+    mq_send(mq, message, messageSize, 0);
+    mq_close(mq);
+
+    exit(EXIT_SUCCESS);
 }

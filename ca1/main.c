@@ -227,8 +227,17 @@ int main (int argc, char **argv) {
 
     // Create audit and logs directories
     mkdir(AUDIT_PATH, 0777);
-    mkdir(LOGS_PATH, 0777);
 
+    // Schedule back
+    char * message = "backup";
+    switch (fork()) {
+        case 0:
+            waitForTime(21, 33, 00, message, strlen(message));
+            break;
+        case -1:
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
+            break;
+    }
 
     do {
         // Read message
@@ -237,14 +246,19 @@ int main (int argc, char **argv) {
         bytes_read = mq_receive(mq, buffer, MAX_BUF, NULL);
         buffer[bytes_read] = '\0';
 
+        // If an error or done message is received from the message queue
+        // then unblock backing up
         if (strstr(buffer, "error") || strstr(buffer, "done")) {
             backupBlocked = 0;
         }
 
+        // Set the current time as the start time for the next log
         if (strstr(buffer, "done")) {
             setCurrentTime();
         }
 
+        // If a backup message is received from the message queue
+        // backup and transfer the data
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
             switch (fork()) {
                 case 0:

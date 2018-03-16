@@ -4,7 +4,6 @@
 #define BASE_PATH "/var/www/html/"
 #define LAST_LOG_TIME_PATH "/var/www/html/.lastLogTime"
 #define AUDIT_PATH "/var/www/html/audit/"
-#define LOGS_PATH "/var/www/html/logs/"
 #define QUEUE_NAME "/daemonQ"
 #define IDENT "serverdaemon"
 

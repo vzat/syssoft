@@ -6,6 +6,6 @@
 void getCurrentTime(char *, size_t);
 void setCurrentTime();
 void getCurrentTimeFileNameSafe(char *, size_t);
-void waitForTime(int, int, int);
+void waitForTime(int, int, int, char *, size_t);
 
 #endif  // TIMELIB_H

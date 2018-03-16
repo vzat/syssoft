@@ -39,15 +39,13 @@ int setupAudit() {
 }
 
 void logChanges() {
-    // ausearch from last log time (size of MAX_DATE)
-
-    // mqd_t mq;
+    mqd_t mq;
     size_t max_date = sizeof(char) * MAX_DATE;
 
-    // char buffer[MAX_BUF];
+    char buffer[MAX_BUF];
     char cmd[MAX_CMD];
 
-    FILE *fp;
+    FILE * fp;
     int status;
 
     // Remove trailing slash if it exists
@@ -68,28 +66,34 @@ void logChanges() {
     // Get last log time
     char * lastLogTime = malloc(max_date);
     getCurrentTime(lastLogTime, max_date);
-    syslog(LOG_INFO, "%s", lastLogTime);
 
     // Get all records from the last check
-    sprintf(cmd, "ausearch -f %s -ts %s -i -l > %s%s.txt", tempIntranet, lastLogTime, AUDIT_PATH, timeFileNameSafe);
-    // sprintf(cmd, "ausearch -f %s -ts %s -i -l", tempIntranet, lastLogTime);
+    sprintf(cmd, "ausearch -f %s -ts %s -i -l > %s%s.log", tempIntranet, lastLogTime, AUDIT_PATH, timeFileNameSafe);
 
     free(timeFileNameSafe);
     free(lastLogTime);
 
-    // syslog(LOG_INFO, "Before %s", lastLogTime);
-
     fp = popen(cmd, "r");
     status = pclose(fp);
 
-    syslog(LOG_INFO, "audit: %d", status);
+    // Send status to message queue
+    mq = mq_open(QUEUE_NAME, O_WRONLY);
 
-    // while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-    //     syslog(LOG_INFO, "LOG: %s", buffer);
-    // }
+    if (status == 0) {
+        sprintf(buffer, "<success> audit: The changes have been logged");
+    }
+    else {
+        sprintf(buffer, "<error> audit: Changes cannot be logged. Returned value %d", status);
+    }
 
-    // Update the lastLogTime
-    // getCurrentTime(lastLogTime, max_date);
+    mq_send(mq, buffer, strlen(buffer), 0);
+    mq_close(mq);
 
-    // syslog(LOG_INFO, "After %s", lastLogTime);
+    // Exit with appropriate exit code
+    if (status == 0) {
+        exit(EXIT_SUCCESS);
+    }
+    else {
+        exit(EXIT_FAILURE);
+    }
 }

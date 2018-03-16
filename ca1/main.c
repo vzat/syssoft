@@ -149,12 +149,31 @@ void backupAndTransfer () {
         return;
     }
 
-    logChanges();
+    // Output Changes to Audit
+    syslog(LOG_INFO, "<info> daemon: Creating log with the latest changes");
+    pid = fork();
+    switch (pid) {
+        case 0:
+            logChanges();
+            break;
+        case -1:
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
+            break;
+    }
+
+    waitpid(pid, &status, 0);
+
+    // Send error message to daemon
+    if (status != 0) {
+        backupAndTransferError();
+        return;
+    }
 
     // Send status to daemon
     mqd_t mq;
+    char * logOutput = "<done> daemon: Backup and Transfer has been completed";
     mq = mq_open(QUEUE_NAME, O_WRONLY);
-    mq_send(mq, "<done> daemon: Backup and Transfer has been completed", strlen("<done> daemon: Backup and Transfer has been completed"), 0);
+    mq_send(mq, logOutput, strlen(logOutput), 0);
     mq_close(mq);
 }
 
@@ -177,7 +196,7 @@ int main (int argc, char **argv) {
     // getCurrentTime(lastLogTime, max_date);
 
     // Create log
-    openlog("serverdaemon", LOG_PID | LOG_CONS, LOG_USER);
+    openlog(IDENT, LOG_PID | LOG_CONS, LOG_USER);
 
     // Message Queue Attributes
     queue_attributes.mq_flags = 0;

@@ -41,7 +41,7 @@ void getCurrentTime (char * nowString, size_t stringSize) {
     // close(fd);
 
     FILE * fp;
-    fp = fopen(LAST_AUDIT_TIME_PATH, "r");
+    fp = fopen(LAST_LOG_TIME_PATH, "r");
     fread(nowString, stringSize, 1, fp);
     fclose(fp);
 }
@@ -73,11 +73,11 @@ void setCurrentTime () {
     nowInfo = localtime(&now);
 
     FILE * fp;
-    fp = fopen(LAST_AUDIT_TIME_PATH, "w");
+    fp = fopen(LAST_LOG_TIME_PATH, "w");
 
     size_t max_date = sizeof(char) * MAX_DATE;
     char * timeString = malloc(max_date);
-    strftime(timeString, max_date, "%d/%m/%y %H:%M:%S\n", nowInfo);
+    strftime(timeString, max_date, "%d/%m/%y %H:%M:%S", nowInfo);
     fwrite(timeString, strlen(timeString), 1, fp);
 
     fclose(fp);

@@ -42,6 +42,8 @@ void logChanges(char * lastLogTime) {
     // ausearch from last log time (size of MAX_DATE)
 
     mqd_t mq;
+    size_t max_date = sizeof(char) * MAX_DATE;
+
     char buffer[MAX_BUF];
     char cmd[MAX_CMD];
 
@@ -59,38 +61,30 @@ void logChanges(char * lastLogTime) {
         strncpy(tempIntranet, INTRANET, strlen(INTRANET));
     }
 
+    // Get filename safe time
+
+    char * timeFileNameSafe = malloc(max_date);
+    getCurrentTimeFileNameSafe(timeFileNameSafe, max_date);
+
     // Get all records from the last check
-    // sprintf(cmd, "ausearch -f %s -ts %s -i -l > %s%s.txt", tempIntranet, lastLogTime, BASE_PATH, lastLogTime);
-    sprintf(cmd, "ausearch -f %s -ts %s -i -l", tempIntranet, lastLogTime);
+    sprintf(cmd, "ausearch -f %s -ts %s -i -l > %s%s.txt", tempIntranet, lastLogTime, AUDIT_PATH, timeFileNameSafe);
+    // sprintf(cmd, "ausearch -f %s -ts %s -i -l", tempIntranet, lastLogTime);
+
+    free(timeFileNameSafe);
+
+    // syslog(LOG_INFO, "Before %s", lastLogTime);
 
     fp = popen(cmd, "r");
+    status = pclose(fp);
 
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        syslog(LOG_INFO, "LOG: %s", buffer);
-    }
+    syslog(LOG_INFO, "audit: %d", status);
+
+    // while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+    //     syslog(LOG_INFO, "LOG: %s", buffer);
+    // }
 
     // Update the lastLogTime
-    size_t max_date = sizeof(char) * MAX_DATE;
     getCurrentTime(lastLogTime, max_date);
+
+    // syslog(LOG_INFO, "After %s", lastLogTime);
 }
-
-
-// int main(void) {
-//
-//     // Use auditctl to watch a dir
-//     // Ocassionally or each time the file is backed up use ausearch to get the modified file
-//     //    Filter the data to get only what is needed and put it in a file
-//
-//     pid_t pid;
-//     int status;
-//
-//     char * now = malloc(sizeof(char) * MAX_DATE);
-//     now = getCurrentDate(now);
-//
-//     // Get last checked record
-//     printf("Last Time %s\n\n", now);
-//
-//     free(now);
-//
-//     return 0;
-// }

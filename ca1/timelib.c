@@ -2,21 +2,39 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <string.h>
 
 #include "macros.h"
-#include "timelib.h"
 
-void getCurrentTime(char * nowString, size_t stringSize) {
+void getCurrentTime (char * nowString, size_t stringSize) {
     time_t now;
     struct tm * nowInfo;
 
     time(&now);
     nowInfo = localtime(&now);
 
-    strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    // memset(nowString, 0, stringSize);
+    // strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+
+
+    char * tempString = malloc(stringSize);
+    strftime(tempString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    strcpy(nowString, tempString);
+    free(tempString);
 }
 
-void waitForTime(int hour, int min, int sec) {
+void getCurrentTimeFileNameSafe (char * nowString, size_t stringSize) {
+    time_t now;
+    struct tm * nowInfo;
+
+    time(&now);
+    nowInfo = localtime(&now);
+
+    memset(nowString, 0, stringSize);
+    strftime(nowString, stringSize, "%d-%m-%yT%H-%M-%S", nowInfo);
+}
+
+void waitForTime (int hour, int min, int sec) {
     time_t now;
 
     struct tm * triggerTime;

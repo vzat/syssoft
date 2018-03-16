@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <mqueue.h>
 #include <syslog.h>
@@ -12,15 +13,9 @@
 #include "backup.h"
 #include "transfer.h"
 #include "audit.h"
+#include "timelib.h"
 
-int setupDaemon() {
-    // Setup audit daemon
-    if (setupAudit() == -1) {
-        return -1;
-    }
-}
-
-void backupAndTransferError() {
+void backupAndTransferError () {
     // Send status to daemon
     mqd_t mq;
     mq = mq_open(QUEUE_NAME, O_WRONLY);
@@ -192,15 +187,26 @@ int main (int argc, char **argv) {
     mq = mq_open(QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &queue_attributes);
 
     if (mq == -1) {
-        syslog(LOG_INFO, "<error> daemon: Cannot create queue: %s", strerror(errno));
+        syslog(LOG_ERR, "<error> daemon: Cannot create queue: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    else {
+        syslog(LOG_INFO, "<info> daemon: Successfully created message queue");
     }
 
-    if (setupDaemon() == -1) {
+    // Setup audit daemon
+    if (setupAudit() == -1) {
         syslog(LOG_ERR, "<error> daemon: Cannot initialise daemon");
+        exit(EXIT_FAILURE);
     }
     else {
         syslog(LOG_INFO, "<info> daemon: The daemon has been initialised");
     }
+
+    // Create audit and logs directories
+    mkdir(AUDIT_PATH, 0777);
+    mkdir(LOGS_PATH, 0777);
+
 
     do {
         // Read message
@@ -224,6 +230,8 @@ int main (int argc, char **argv) {
             }
         }
 
+        syslog(LOG_INFO, "daemon: backup time %s", lastLogTime);
+
         // Log Status
         if (strstr(buffer, "error")) {
             syslog(LOG_ERR, "%s", buffer);
@@ -238,6 +246,7 @@ int main (int argc, char **argv) {
         }
     } while (!terminate);
 
+    free(lastLogTime);
     mq_close(mq);
     mq_unlink(QUEUE_NAME);
     closelog();

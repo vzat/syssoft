@@ -14,13 +14,13 @@ void getCurrentTime (char * nowString, size_t stringSize) {
     nowInfo = localtime(&now);
 
     // memset(nowString, 0, stringSize);
-    // strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    strftime(nowString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
 
 
-    char * tempString = malloc(stringSize);
-    strftime(tempString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
-    strcpy(nowString, tempString);
-    free(tempString);
+    // char * tempString = malloc(stringSize);
+    // strftime(tempString, stringSize, "%d/%m/%y %H:%M:%S", nowInfo);
+    // strcpy(nowString, tempString);
+    // free(tempString);
 }
 
 void getCurrentTimeFileNameSafe (char * nowString, size_t stringSize) {

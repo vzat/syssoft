@@ -231,6 +231,7 @@ int main (int argc, char **argv) {
         }
 
         syslog(LOG_INFO, "daemon: backup time %s", lastLogTime);
+        printf("backup time: %s\n", lastLogTime);
 
         // Log Status
         if (strstr(buffer, "error")) {

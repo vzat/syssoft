@@ -1,7 +1,6 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-int setupLogger();
-void pipeSyslogToFile();
+void pipeSyslogToFile(int[2]);
 
 #endif // LOGGER_H

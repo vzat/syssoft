@@ -5,22 +5,24 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <syslog.h>
 
 #include "macros.h"
 #include "timelib.h"
 
-int setupLogger() {
-    return mkfifo(LOG_FIFO, 0666);
-}
-
-void pipeSyslogToFile() {
+void pipeSyslogToFile(int fd[2]) {    
     mqd_t mq;
     char buffer[MAX_BUF];
     char cmd[MAX_CMD];
 
     FILE * fp;
-    int fd;
+    // FILE * fpPipe;
     int status;
+
+    // Send no output
+    close(fd[1]);
+
+    // fpPipe = fdopen(fd[0], "r");
 
     // Get filename safe time
     size_t max_date = sizeof(char) * MAX_DATE;
@@ -34,10 +36,10 @@ void pipeSyslogToFile() {
     // Run tail
     fp = popen(cmd, "r");
 
-    // Wait for fifo to return
-    fd = open(LOG_FIFO, O_RDONLY);
-    read(fd, buffer, MAX_BUF);
-    close(fd);
+    // Wait data from pipe
+    read(fd[0], buffer, MAX_BUF);
+    // while (fgets(buffer, MAX_BUF, fpPipe));
+    close(fd[0]);
 
     status = pclose(fp);
 

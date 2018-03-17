@@ -14,6 +14,7 @@
 #include "transfer.h"
 #include "audit.h"
 #include "timelib.h"
+#include "logger.h"
 
 extern char * commonTime;
 
@@ -28,6 +29,25 @@ void backupAndTransferError () {
 void backupAndTransfer () {
     int status;
     pid_t pid;
+
+    // Tail syslog
+    pid = fork();
+    switch (pid) {
+        case 0:
+            pipeSyslogToFile();
+            break;
+        case -1:
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
+            break;
+    }
+
+    waitpid(pid, &status, 0);
+
+    // Send error message to daemon
+    if (status != 0) {
+        backupAndTransferError();
+        return;
+    }
 
     // Block INTRANET access
     syslog(LOG_INFO, "<info> daemon: Changing INTRANET permissions to 000");
@@ -201,6 +221,9 @@ int main (int argc, char **argv) {
         sec = atoi(argv[3]);
     }
 
+    // Open fifo file for the logger
+    int fd = open(LOG_FIFO, O_WRONLY);
+
     // Set the current time as the last log message
     setCurrentTime();
 
@@ -225,20 +248,39 @@ int main (int argc, char **argv) {
         syslog(LOG_INFO, "<info> daemon: Successfully created message queue");
     }
 
-    // Setup audit daemon
-    if (setupAudit() == -1) {
-        syslog(LOG_ERR, "<error> daemon: Cannot initialise daemon");
-        exit(EXIT_FAILURE);
-    }
-    else {
-        syslog(LOG_INFO, "<info> daemon: The daemon has been initialised");
-    }
-
     // Create audit and logs directories
     // Use 555 so anyone can read the files but only
     // the superuser can remove or change them
     mkdir(AUDIT_PATH, 0555);
     mkdir(LOG_PATH, 0555);
+
+    // Setup audit daemon
+    if (setupAudit() == -1) {
+        syslog(LOG_ERR, "<error> daemon: Cannot setup audit");
+        exit(EXIT_FAILURE);
+    }
+    else {
+        syslog(LOG_INFO, "<info> daemon: The audit has been setup");
+    }
+
+    // Setup logger daemon
+    if (setupLogger() == -1) {
+        syslog(LOG_ERR, "<error> daemon: Cannot setup logger");
+        exit(EXIT_FAILURE);
+    }
+    else {
+        syslog(LOG_INFO, "<info> daemon: The logger has been setup");
+    }
+
+    // Initial Tail syslog
+    switch (fork()) {
+        case 0:
+            pipeSyslogToFile();
+            break;
+        case -1:
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
+            break;
+    }
 
     // Schedule backup
     switch (fork()) {
@@ -263,8 +305,9 @@ int main (int argc, char **argv) {
             backupBlocked = 0;
         }
 
-        // Set the current time as the start time for the next log
+        // Triggered after the backup is completed
         if (strstr(buffer, "BACKUP-COMPLETED")) {
+            // Set the new last audit log time as the current time
             setCurrentTime();
         }
 
@@ -286,6 +329,13 @@ int main (int argc, char **argv) {
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
             switch (fork()) {
                 case 0:
+                    // // Write to fifo and close
+                    // write(fd, "close\n", sizeof("close\n"));
+                    // close(fd);
+                    //
+                    // // Open fifo for the next log
+                    // fd = open(LOG_FIFO, O_WRONLY);
+
                     backupAndTransfer();
                     break;
                 case -1:
@@ -311,6 +361,7 @@ int main (int argc, char **argv) {
     // free(lastLogTime);
     mq_close(mq);
     mq_unlink(QUEUE_NAME);
+    unlink(LOG_FIFO);
     closelog();
 
     return 0;

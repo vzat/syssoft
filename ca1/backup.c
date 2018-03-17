@@ -13,7 +13,7 @@ void backup() {
     char buffer[MAX_BUF];
     char cmd[MAX_CMD];
 
-    FILE *fp;
+    FILE * fp;
     int status;
 
     sprintf(cmd, "rsync -avP %s %s", LIVE, BACKUP);

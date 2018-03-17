@@ -10,6 +10,8 @@
 #define QUEUE_NAME "/daemonQ"
 #define IDENT "serverdaemon"
 
+#define LOG_FIFO "/var/www/html/.logfifo"
+
 #define MAX_BUF 1024
 #define MAX_CMD 1024
 #define MAX_DATE 20

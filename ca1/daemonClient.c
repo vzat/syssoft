@@ -3,24 +3,19 @@
 #include <string.h>
 #include <mqueue.h>
 
-#define MAX_BUF 1024
+#include "macros.h"
 
 int main (int argc, char **argv) {
     mqd_t mq;
 
     char buffer[MAX_BUF];
 
-    if (argc != 2) {
-        printf("This program requires a queue name as parameter\n\n");
-        exit(1);
-    }
-
     // Open message queue
-    mq = mq_open(argv[1], O_WRONLY);
+    mq = mq_open(QUEUE_NAME, O_WRONLY);
 
     printf("Send message to server. The following commands are available:\n");
     printf("Enter 'quit' to terminate client\n");
-    printf("Enter 'exit' to termiante server\n");
+    printf("Enter 'exit' to terminate server\n");
     printf("Enter 'backup' to backup and transfer the website directory\n\n");
 
     do {

@@ -10,19 +10,16 @@
 #include "macros.h"
 #include "timelib.h"
 
-void pipeSyslogToFile(int fd[2]) {    
+void pipeSyslogToFile(int fd[2]) {
     mqd_t mq;
     char buffer[MAX_BUF];
     char cmd[MAX_CMD];
 
     FILE * fp;
-    // FILE * fpPipe;
     int status;
 
     // Send no output
     close(fd[1]);
-
-    // fpPipe = fdopen(fd[0], "r");
 
     // Get filename safe time
     size_t max_date = sizeof(char) * MAX_DATE;

@@ -26,28 +26,9 @@ void backupAndTransferError () {
     mq_close(mq);
 }
 
-void backupAndTransfer (int fd[2]) {
+void backupAndTransfer () {
     int status;
     pid_t pid;
-
-    // Tail syslog
-    pid = fork();
-    switch (pid) {
-        case 0:
-            pipeSyslogToFile(fd);
-            break;
-        case -1:
-            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
-            break;
-    }
-
-    waitpid(pid, &status, 0);
-
-    // Send error message to daemon
-    if (status != 0) {
-        backupAndTransferError();
-        return;
-    }
 
     // Block INTRANET access
     syslog(LOG_INFO, "<info> daemon: Changing INTRANET permissions to 000");
@@ -213,6 +194,8 @@ int main (int argc, char **argv) {
 
     int hour = 2, min = 0, sec = 0;
 
+    int fd[2];
+
     // If scheduled time is passed as command line arguments
     // replace the default values
     if (argc == 4) {
@@ -221,9 +204,21 @@ int main (int argc, char **argv) {
         sec = atoi(argv[3]);
     }
 
-    // Open fifo file for the logger
-    // int fd = open(LOG_FIFO, O_WRONLY);
-    int fd[2];
+    // Create pipe for logger
+    pipe(fd);
+
+    // Tail syslog
+    switch (fork()) {
+        case 0:
+            pipeSyslogToFile(fd);
+            break;
+        case -1:
+            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
+            break;
+    }
+
+    // Take no input
+    close(fd[0]);
 
     // Set the current time as the last log message
     setCurrentTime();
@@ -263,31 +258,6 @@ int main (int argc, char **argv) {
     else {
         syslog(LOG_INFO, "<info> daemon: The audit has been setup");
     }
-
-    // // Setup logger daemon
-    // if (setupLogger() == -1) {
-    //     syslog(LOG_ERR, "<error> daemon: Cannot setup logger");
-    //     exit(EXIT_FAILURE);
-    // }
-    // else {
-    //     syslog(LOG_INFO, "<info> daemon: The logger has been setup");
-    // }
-
-    // Create pipe for logger
-    pipe(fd);
-
-    // Initial Tail syslog
-    switch (fork()) {
-        case 0:
-            pipeSyslogToFile(fd);
-            break;
-        case -1:
-            syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
-            break;
-    }
-
-    // Take no input
-    close(fd[0]);
 
     // Schedule backup
     switch (fork()) {
@@ -334,23 +304,14 @@ int main (int argc, char **argv) {
         // If a backup message is received from the message queue
         // backup and transfer the data
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
-            // Write to pipe and close to close the last log
-            char msg[] = "close\n";
-            write(fd[1], msg, strlen(msg) + 1);
-            close(fd[1]);
-
-            pipe(fd);
-
             switch (fork()) {
                 case 0:
-                    backupAndTransfer(fd);
+                    backupAndTransfer();
                     break;
                 case -1:
                     syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
                     break;
             }
-
-            close(fd[0]);
         }
 
         // Log Status
@@ -367,7 +328,7 @@ int main (int argc, char **argv) {
         }
     } while (!terminate);
 
-    // free(lastLogTime);
+    close(fd[1]);
     mq_close(mq);
     mq_unlink(QUEUE_NAME);
     closelog();

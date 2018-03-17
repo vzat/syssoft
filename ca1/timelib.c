@@ -96,7 +96,7 @@ void waitForTime (int hour, int min, int sec, char * message, size_t messageSize
     sleep(1);
 
     buffer = (char *) malloc(MAX_BUF);
-    sprintf(buffer, "<info> timelib: The scheduled task \"%s\" will now run (RUN-TASK)", message);
+    sprintf(buffer, "<info> timelib: The scheduled task \"%s\" will now run (TIME-REACHED)", message);
 
     mq = mq_open(QUEUE_NAME, O_WRONLY);
     mq_send(mq, message, messageSize, 0);

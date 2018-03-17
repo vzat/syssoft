@@ -171,7 +171,7 @@ void backupAndTransfer () {
 
     // Send status to daemon
     mqd_t mq;
-    char * logOutput = "<done> daemon: Backup and Transfer has been completed";
+    char * logOutput = "<info> daemon: Backup and Transfer has been completed (BACKUP-COMPLETED)";
     mq = mq_open(QUEUE_NAME, O_WRONLY);
     mq_send(mq, logOutput, strlen(logOutput), 0);
     mq_close(mq);
@@ -190,6 +190,16 @@ int main (int argc, char **argv) {
     int backupBlocked = 0;
 
     char * scheduledMessage = "backup";
+
+    int hour = 2, min = 0, sec = 0;
+
+    // If scheduled time is passed as command line arguments
+    // replace the default values
+    if (argc == 4) {
+        hour = atoi(argv[1]);
+        min = atoi(argv[2]);
+        sec = atoi(argv[3]);
+    }
 
     // Set the current time as the last log message
     setCurrentTime();
@@ -225,12 +235,15 @@ int main (int argc, char **argv) {
     }
 
     // Create audit and logs directories
-    mkdir(AUDIT_PATH, 0777);
+    // Use 555 so anyone can read the files but only
+    // the superuser can remove or change them
+    mkdir(AUDIT_PATH, 0555);
+    mkdir(LOG_PATH, 0555);
 
     // Schedule backup
     switch (fork()) {
         case 0:
-            waitForTime(21, 52, 00, scheduledMessage, strlen(scheduledMessage));
+            waitForTime(hour, min, sec, scheduledMessage, strlen(scheduledMessage));
             break;
         case -1:
             syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));
@@ -244,22 +257,23 @@ int main (int argc, char **argv) {
         bytes_read = mq_receive(mq, buffer, MAX_BUF, NULL);
         buffer[bytes_read] = '\0';
 
-        // If an error or done message is received from the message queue
+        // If an error or BACKUP-COMPLETED message is received from the message queue
         // then unblock backing up
-        if (strstr(buffer, "error") || strstr(buffer, "done")) {
+        if (strstr(buffer, "error") || strstr(buffer, "BACKUP-COMPLETED")) {
             backupBlocked = 0;
         }
 
         // Set the current time as the start time for the next log
-        if (strstr(buffer, "done")) {
+        if (strstr(buffer, "BACKUP-COMPLETED")) {
             setCurrentTime();
         }
 
-        if (strstr(buffer, "RUN-TASK")) {
+        // Triggered when the schedule time is reached
+        if (strstr(buffer, "TIME-REACHED")) {
             // Schedule task for the next day
             switch (fork()) {
                 case 0:
-                    waitForTime(21, 52, 00, scheduledMessage, strlen(scheduledMessage));
+                    waitForTime(hour, min, sec, scheduledMessage, strlen(scheduledMessage));
                     break;
                 case -1:
                     syslog(LOG_ERR, "%s: %s", "<error> daemon: Cannot init fork", strerror(errno));

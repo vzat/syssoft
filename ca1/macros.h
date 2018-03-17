@@ -1,9 +1,12 @@
+#define BASE_PATH "/var/www/html/"
 #define INTRANET "/var/www/html/intranet/"
 #define LIVE "/var/www/html/live/"
 #define BACKUP "/var/www/html/backup/"
-#define BASE_PATH "/var/www/html/"
+
 #define LAST_LOG_TIME_PATH "/var/www/html/.lastLogTime"
 #define AUDIT_PATH "/var/www/html/audit/"
+#define LOG_PATH "/var/www/html/logs/"
+
 #define QUEUE_NAME "/daemonQ"
 #define IDENT "serverdaemon"
 

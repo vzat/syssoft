@@ -54,5 +54,6 @@
 *
 !/**/
 !*.*
+!/ca1/makefile
 !LICENSE
 *.o

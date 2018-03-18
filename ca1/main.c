@@ -180,8 +180,38 @@ void backupAndTransfer () {
 
 int main (int argc, char **argv) {
 
-    // TODO: Create orphan process to deamonize this process
+    // Deamonize process
+    int pid = fork();
 
+    if (pid > 0) {
+        // Parent process
+        sleep(5);
+        exit(EXIT_SUCCESS);
+    }
+
+    if (pid == -1) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Elavate orphan to session leader
+    if (setsid() < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Set file mode creation to 0
+    umask(0);
+
+    // Change working dir to /
+    if (chdir("/") < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Close all file descriptors
+    for (int x = sysconf(_SC_OPEN_MAX); x >= 0; x--) {
+        close(x);
+    }
+
+    // Daemon
     mqd_t mq;
 
     struct mq_attr queue_attributes;

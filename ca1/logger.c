@@ -35,7 +35,6 @@ void pipeSyslogToFile(int fd[2]) {
 
     // Wait data from pipe
     read(fd[0], buffer, MAX_BUF);
-    // while (fgets(buffer, MAX_BUF, fpPipe));
     close(fd[0]);
 
     status = pclose(fp);

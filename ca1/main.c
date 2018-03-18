@@ -1,3 +1,7 @@
+// Vlad Zat
+// C14714071
+// DT228/4
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -334,7 +338,6 @@ int main (int argc, char **argv) {
         // If a backup message is received from the message queue
         // backup and transfer the data
         if (!backupBlocked && !strncmp(buffer, "backup", strlen("backup"))) {
-            backupBlocked = 1;
             switch (fork()) {
                 case 0:
                     backupAndTransfer();

@@ -39,7 +39,7 @@ int main (int argc, char ** argv) {
         printf("\nUsername: ");
         scanf("%s", username);
 
-        printf("\nPassword: ");
+        printf("Password: ");
         scanf("%s", password);
 
         sprintf(credentials, "%s:%s", username, password);

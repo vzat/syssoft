@@ -37,7 +37,9 @@ void *connection(void *arg) {
             fp = fopen(HTPASSWD_PATH, "r");
 
             while(fgets(line, MAX_BUF, fp)) {
-                printf("%s\n%s", line, message);
+                // Remove newline from each line
+                line[strcspn(line, "\n")] = 0;
+
                 if (strcmp(line, message) == 0) {
                     authenticated = 1;
                     break;

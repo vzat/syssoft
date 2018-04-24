@@ -8,10 +8,15 @@
 
 int main (int argc, char ** argv) {
     int SID;
+    int authenticated = 0;
     struct sockaddr_in server;
+
     char username[100];
     char password[100];
-    char credentials[MAX_BUF];
+    char filename[100];
+    char path[100];
+
+    char clientMessage[MAX_BUF];
     char serverMessage[MAX_BUF];
 
     // Create Socket
@@ -36,26 +41,53 @@ int main (int argc, char ** argv) {
     printf("Successfully connected to the server\n");
 
     while (1) {
-        printf("\nUsername: ");
-        scanf("%s", username);
+        if (authenticated) {
+            printf("\nFilename: ");
+            scanf("%s", filename);
 
-        printf("Password: ");
-        scanf("%s", password);
+            printf("\nPath: ");
+            scanf("%s", path);
 
-        sprintf(credentials, "%s:%s", username, password);
+            sprintf(clientMessage, "%s\r\n%s", filename, path);
 
-        // Send some data
-        if (send(SID, credentials, strlen(credentials), 0) < 0) {
-            printf("Send failed");
-            return 1;
+            // Send file to be transfered
+            if (send(SID, clientMessage, strlen(clientMessage), 0) < 0) {
+                printf("Send failed");
+                return 1;
+            }
+
+            // Receive reply from server
+            if (recv(SID, serverMessage, MAX_BUF, 0) < 0) {
+                printf("IO error");
+                break;
+            }
+
+            printf("\n%s", serverMessage);
         }
+        else {
+            printf("\nUsername: ");
+            scanf("%s", username);
 
-        // Receive reply from server
-        if (recv(SID, serverMessage, MAX_BUF, 0) < 0) {
-            printf("IO error");
-            break;
+            printf("Password: ");
+            scanf("%s", password);
+
+            sprintf(clientMessage, "%s:%s", username, password);
+
+            // Send credentials
+            if (send(SID, clientMessage, strlen(clientMessage), 0) < 0) {
+                printf("Send failed");
+                return 1;
+            }
+
+            // Receive reply from server
+            if (recv(SID, serverMessage, MAX_BUF, 0) < 0) {
+                printf("IO error");
+                break;
+            }
+
+            if (strstr(serverMessage, "authenticated")) {
+                authenticated = 1;
+            }
         }
-
-        printf("Server sent: %s", serverMessage);
     }
 }

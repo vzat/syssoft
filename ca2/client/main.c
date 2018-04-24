@@ -16,8 +16,8 @@ int main (int argc, char ** argv) {
     char filename[100];
     char path[100];
 
-    char clientMessage[MAX_BUF];
-    char serverMessage[MAX_BUF];
+    char clientMessage[MAX_BUF + 1];
+    char serverMessage[MAX_BUF + 1];
 
     // Create Socket
     SID = socket(AF_INET, SOCK_STREAM, 0);
@@ -45,10 +45,10 @@ int main (int argc, char ** argv) {
             printf("\nFilename: ");
             scanf("%s", filename);
 
-            printf("\nPath: ");
+            printf("Path: ");
             scanf("%s", path);
 
-            sprintf(clientMessage, "%s\r\n%s", filename, path);
+            sprintf(clientMessage, "%s\n%s", filename, path);
 
             // Send file to be transfered
             if (send(SID, clientMessage, strlen(clientMessage), 0) < 0) {
@@ -80,13 +80,20 @@ int main (int argc, char ** argv) {
             }
 
             // Receive reply from server
-            if (recv(SID, serverMessage, MAX_BUF, 0) < 0) {
-                printf("IO error");
-                break;
+            int recvBytes;
+            while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
+                serverMessage[recvBytes] = 0;
+                if (strstr(serverMessage, "\r\n")) {
+                    break;
+                }
             }
 
-            if (strstr(serverMessage, "authenticated")) {
+            if (strstr(serverMessage, "auth")) {
+                printf("\n===Authenticated===\n");
                 authenticated = 1;
+            }
+            else {
+                printf("\n===Invalid Username and/or Password===\n");
             }
         }
     }

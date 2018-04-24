@@ -18,8 +18,8 @@ void *connection(void *arg) {
     char message[MAX_BUF];
     char line[MAX_BUF];
 
-    char *authMessage = "Authenticated";
-    char *errorAuth = "Invalid credentials";
+    char *authMessage = "auth\r\n";
+    char *errorAuth = "err\r\n";
 
     // Receive data from the client
     while ((READSIZE = recv(socket, message, MAX_BUF, 0)) > 0) {

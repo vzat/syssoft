@@ -9,6 +9,8 @@
 int main (int argc, char ** argv) {
     int SID;
     int authenticated = 0;
+    int recvBytes;
+    int blockSize;
     struct sockaddr_in server;
 
     char username[100];
@@ -18,6 +20,9 @@ int main (int argc, char ** argv) {
 
     char clientMessage[MAX_BUF + 1];
     char serverMessage[MAX_BUF + 1];
+    char fileBuffer[MAX_BUF];
+
+    FILE *fp;
 
     // Create Socket
     SID = socket(AF_INET, SOCK_STREAM, 0);
@@ -48,21 +53,66 @@ int main (int argc, char ** argv) {
             printf("Path: ");
             scanf("%s", path);
 
-            sprintf(clientMessage, "%s\n%s", filename, path);
-
-            // Send file to be transfered
-            if (send(SID, clientMessage, strlen(clientMessage), 0) < 0) {
-                printf("Send failed");
-                return 1;
+            // Check if the file exists
+            if ((fp = fopen(filename, "r")) == NULL) {
+                printf("\n===The file cannot be found===\n");
             }
+            else {
+                // TODO: Send the filename as well (e.g. Sales/macros.h)
+                if (send(SID, path, strlen(path), 0) == -1) {
+                    printf("\n===Server not reachable===\n");
+                }
+                else {
+                    // Receive reply from server
+                    int pathAccepted = 0;
+                    while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
+                        serverMessage[recvBytes] = 0;
 
-            // Receive reply from server
-            if (recv(SID, serverMessage, MAX_BUF, 0) < 0) {
-                printf("IO error");
-                break;
+                        if (strstr(serverMessage, "path")) {
+                            pathAccepted = 1;
+                        }
+                        else {
+                            printf("\n===Invalid Path===\n");
+                        }
+
+                        if (strstr(serverMessage, "\r\n")) {
+                            break;
+                        }
+                    }
+
+                    // Send file
+                    if (pathAccepted) {
+                        printf("\n===Sending file...===\n");
+                        bzero(fileBuffer, MAX_BUF);
+
+                        while ((blockSize = fread(fileBuffer, sizeof(char), MAX_BUF, fp)) > 0) {
+                            if (send(SID, fileBuffer, blockSize, 0) < 0) {
+                                printf("\n===Server not reachable===\n");
+                                return 1;
+                            }
+                            bzero(fp, MAX_BUF);
+                        }
+
+                        fclose(fp);
+
+                        // Check if the file was received
+                        while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
+                            serverMessage[recvBytes] = 0;
+
+                            if (strstr(serverMessage, "recv")) {
+                                printf("\n===The file was received===\n");
+                            }
+                            else {
+                                printf("\n===The file was not received===\n");
+                            }
+
+                            if (strstr(serverMessage, "\r\n")) {
+                                break;
+                            }
+                        }
+                    }
+                }
             }
-
-            printf("\n%s", serverMessage);
         }
         else {
             printf("\nUsername: ");
@@ -80,20 +130,20 @@ int main (int argc, char ** argv) {
             }
 
             // Receive reply from server
-            int recvBytes;
             while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
                 serverMessage[recvBytes] = 0;
+
+                if (strstr(serverMessage, "auth")) {
+                    printf("\n===Authenticated===\n");
+                    authenticated = 1;
+                }
+                else {
+                    printf("\n===Invalid Username and/or Password===\n");
+                }
+
                 if (strstr(serverMessage, "\r\n")) {
                     break;
                 }
-            }
-
-            if (strstr(serverMessage, "auth")) {
-                printf("\n===Authenticated===\n");
-                authenticated = 1;
-            }
-            else {
-                printf("\n===Invalid Username and/or Password===\n");
             }
         }
     }

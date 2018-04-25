@@ -34,9 +34,18 @@ void *connection(void *arg) {
 
     // Receive data from the client
     while ((READSIZE = recv(socket, message, MAX_BUF, 0)) > 0) {
+        message[READSIZE] = 0;
+
         // Get files
         if (authenticated) {
               printf("\nmessage: %s\n", message);
+
+              if (strchr(message, '/') == NULL) {
+                  printf("NULL");
+              }
+              else {
+                  printf("NOT NULL");
+              }
 
               // Get directory name from message
               if (strcmp(strchr(message, '/'), message) == 0) {

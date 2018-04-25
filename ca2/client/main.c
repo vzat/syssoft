@@ -55,12 +55,17 @@ int main (int argc, char ** argv) {
 
             // Check if the file exists
             if ((fp = fopen(filename, "r")) == NULL) {
-                printf("\n===The file cannot be found===\n");
+                printf("\n=== The file cannot be found ===\n");
             }
             else {
-                // TODO: Send the filename as well (e.g. Sales/macros.h)
-                if (send(SID, path, strlen(path), 0) == -1) {
-                    printf("\n===Server not reachable===\n");
+                // Remove forward slash from each line
+                path[strcspn(path, "/")] = 0;
+
+                bzero(clientMessage, MAX_BUF);
+                sprintf(clientMessage, "%s/%s", path, filename);
+
+                if (send(SID, path, strlen(clientMessage), 0) == -1) {
+                    printf("\n=== Server not reachable ===\n");
                 }
                 else {
                     // Receive reply from server
@@ -72,7 +77,7 @@ int main (int argc, char ** argv) {
                             pathAccepted = 1;
                         }
                         else {
-                            printf("\n===Invalid Path===\n");
+                            printf("\n=== Invalid Path ===\n");
                         }
 
                         if (strstr(serverMessage, "\r\n")) {
@@ -82,15 +87,15 @@ int main (int argc, char ** argv) {
 
                     // Send file
                     if (pathAccepted) {
-                        printf("\n===Sending file...===\n");
+                        printf("\n=== Sending file... ===\n");
                         bzero(fileBuffer, MAX_BUF);
 
                         while ((blockSize = fread(fileBuffer, sizeof(char), MAX_BUF, fp)) > 0) {
                             if (send(SID, fileBuffer, blockSize, 0) < 0) {
-                                printf("\n===Server not reachable===\n");
+                                printf("\n=== Server not reachable ===\n");
                                 return 1;
                             }
-                            bzero(fp, MAX_BUF);
+                            bzero(fileBuffer, MAX_BUF);
                         }
 
                         fclose(fp);
@@ -100,10 +105,10 @@ int main (int argc, char ** argv) {
                             serverMessage[recvBytes] = 0;
 
                             if (strstr(serverMessage, "recv")) {
-                                printf("\n===The file was received===\n");
+                                printf("\n=== The file was received ===\n");
                             }
                             else {
-                                printf("\n===The file was not received===\n");
+                                printf("\n=== The file was not received ===\n");
                             }
 
                             if (strstr(serverMessage, "\r\n")) {
@@ -134,11 +139,11 @@ int main (int argc, char ** argv) {
                 serverMessage[recvBytes] = 0;
 
                 if (strstr(serverMessage, "auth")) {
-                    printf("\n===Authenticated===\n");
+                    printf("\n=== Authenticated ===\n");
                     authenticated = 1;
                 }
                 else {
-                    printf("\n===Invalid Username and/or Password===\n");
+                    printf("\n=== Invalid Username and/or Password ===\n");
                 }
 
                 if (strstr(serverMessage, "\r\n")) {

@@ -64,7 +64,7 @@ int main (int argc, char ** argv) {
                 bzero(clientMessage, MAX_BUF);
                 sprintf(clientMessage, "%s/%s", path, filename);
 
-                if (send(SID, path, strlen(clientMessage), 0) == -1) {
+                if (send(SID, clientMessage, strlen(clientMessage), 0) == -1) {
                     printf("\n=== Server not reachable ===\n");
                 }
                 else {
@@ -87,10 +87,13 @@ int main (int argc, char ** argv) {
 
                     // Send file
                     if (pathAccepted) {
+                        sleep(1);
+
                         printf("\n=== Sending file... ===\n");
                         bzero(fileBuffer, MAX_BUF);
 
                         while ((blockSize = fread(fileBuffer, sizeof(char), MAX_BUF, fp)) > 0) {
+                            printf("\nfileBuffer: %s\n: ", fileBuffer);
                             if (send(SID, fileBuffer, blockSize, 0) < 0) {
                                 printf("\n=== Server not reachable ===\n");
                                 return 1;

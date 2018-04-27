@@ -27,6 +27,7 @@ void *connection(void *arg) {
     char *errorAuth = "err\r\n";
     char *pathMessage = "path\r\n";
     char *errorPath = "err\r\n";
+    char *recvMessage = "recv\r\n";
 
     const char *dirs[5] = {"/", "Sales", "Promotions", "Offers", "Marketing"};
 
@@ -38,79 +39,72 @@ void *connection(void *arg) {
 
         // Get files
         if (authenticated) {
-              printf("\nmessage: %s\n", message);
+            char *dashPtr = strchr(message,  '/');
+            if (dashPtr != NULL) {
+                // Get directory name from message
+                if (strcmp(dashPtr, message) == 0) {
+                    dirname[0] = '/';
+                    dirname[1] = 0;
+                }
+                else {
+                    dirname[0] = 0;
+                    strcpy(dirname, message);
+                    dirname[strcspn(dirname, "/")] = 0;
+                }
 
-              if (strchr(message, '/') == NULL) {
-                  printf("NULL");
-              }
-              else {
-                  printf("NOT NULL");
-              }
+                // Check if the directory received is correct
+                int dirSelected = -1;
+                for (int i = 0 ; i < 5 ; i ++) {
+                    if (strcmp(dirs[i], dirname) == 0) {
+                        dirSelected = i;
+                        break;
+                    }
+                }
 
-              // Get directory name from message
-              if (strcmp(strchr(message, '/'), message) == 0) {
-                  printf("\n???\n");
-                  dirname[0] = '/';
-                  dirname[1] = 0;
-              }
-              else {
-                  printf("\nBefore strcpy\n");
-                  dirname[0] = 0;
-                  strcpy(dirname, message);
-                  printf("\nbefore removing slash: %s\n", dirname);
-                  dirname[strcspn(dirname, "/")] = 0;
-              }
+                if (dirSelected != -1) {
+                    // Get local path of the file
+                    if (strcmp(dashPtr, message) == 0) {
+                        sprintf(path, "%s%s", INTRANET, message);
+                    }
+                    else {
+                        sprintf(path, "%s/%s", INTRANET, message);
+                    }
 
-              printf("\ndirname: %s\n", dirname);
+                    // Block access when writting to disk
+                    pthread_mutex_lock(&lock_x);
 
-              // Check if the directory received is correct
-              int dirSelected = -1;
-              for (int i = 0 ; i < 5 ; i ++) {
-                  if (strcmp(dirs[i], dirname) == 0) {
-                      dirSelected = i;
-                      break;
-                  }
-              }
+                    // Write file to disk
+                    if ((fp = fopen(path, "w")) == NULL) {
+                        printf("\nCannot create file\n");
+                    }
+                    else {
+                        bzero(fileBuffer, MAX_BUF);
 
-              // Inform the client if the directory name is correct
-              if (dirSelected != -1) {
-                  send(socket, pathMessage, strlen(pathMessage), 0);
+                        // Inform the client if the directory name is correct
+                        send(socket, pathMessage, strlen(pathMessage), 0);
 
-                  // Block access when writting to disk
-                  pthread_mutex_lock(&lock_x);
+                        // Get file data
+                        while((blockSize = recv(socket, fileBuffer, MAX_BUF, 0)) > 0) {
+                            printf("\nfileBuffer: %s\n", fileBuffer);
+                            fwrite(fileBuffer, sizeof(char), blockSize, fp);
+                            bzero(fileBuffer, MAX_BUF);
+                        }
 
-                  // Get local path of the file
-                  if (strcmp(strchr(message, '/'), message) == 0) {
-                      sprintf(path, "%s%s", INTRANET, message);
-                  }
-                  else {
-                      sprintf(path, "%s/%s", INTRANET, message);
-                  }
+                        // Inform the client the data has been received
+                        send(socket, recvMessage, strlen(recvMessage), 0);
+                    }
 
-                  // Write file to disk
-                  printf("\npath: %s\n", path);
-                  if ((fp = fopen(path, "w")) == NULL) {
-                      printf("\nCannot create file\n");
-                  }
-                  else {
-                      bzero(fileBuffer, MAX_BUF);
+                    fclose(fp);
 
-                      while((blockSize = recv(socket, fileBuffer, MAX_BUF, 0)) > 0) {
-                          fwrite(fileBuffer, sizeof(char), blockSize, fp);
-                          bzero(fileBuffer, MAX_BUF);
-                      }
-                  }
+                    // TODO: Log it
 
-                  fclose(fp);
-
-                  // TODO: Log it
-
-                  // Unblock mutex
-                  pthread_mutex_unlock(&lock_x);
-              }
-              else {
-                  send(socket, errorPath, strlen(errorPath), 0);
-              }
+                    // Unblock mutex
+                    pthread_mutex_unlock(&lock_x);
+                }
+                else {
+                    send(socket, errorPath, strlen(errorPath), 0);
+                }
+            }
         }
 
         // Authenticate user

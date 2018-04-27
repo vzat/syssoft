@@ -50,9 +50,13 @@ int main (int argc, char **argv) {
         printf("Connection from client accepted\n");
 
         pthread_t client_thread;
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, 1);
+
         int rc;
 
-        if ((rc = pthread_create(&client_thread, NULL, connection, (void*) &cs))) {
+        if ((rc = pthread_create(&client_thread, &attr, connection, (void*) &cs))) {
             printf("Error creating thread");
             return EXIT_FAILURE;
         }

@@ -96,8 +96,13 @@ void *connection(void *arg) {
                             fflush(stdout);
                         }
 
+                        fflush(stdout);
+                        printf("\nBefore fclose()\n");
+
                         fclose(fp);
                         fflush(stdout);
+
+                        printf("\nBefore send\n");
 
                         // Inform the client the data has been received
                         send(socket, recvMessage, strlen(recvMessage), 0);
@@ -105,6 +110,7 @@ void *connection(void *arg) {
                     }
 
                     // TODO: Log it
+                    printf("\nLog\n");
 
                     // Unblock mutex
                     pthread_mutex_unlock(&lock_x);

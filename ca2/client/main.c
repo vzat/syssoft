@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -90,6 +91,9 @@ int main (int argc, char ** argv) {
                         printf("\n=== Sending file... ===\n");
                         bzero(fileBuffer, MAX_BUF);
 
+                        // Send file size first so the server knows when to stop
+                        // receving data
+
                         while ((blockSize = fread(fileBuffer, sizeof(char), MAX_BUF, fp)) > 0) {
                             printf("\nfileBuffer: %s\n: ", fileBuffer);
                             if (send(SID, fileBuffer, blockSize, 0) < 0) {
@@ -107,9 +111,13 @@ int main (int argc, char ** argv) {
 
                             if (strstr(serverMessage, "recv")) {
                                 printf("\n=== The file was received ===\n");
+                                // close(SID);
+                                // exit(EXIT_SUCCESS);
                             }
                             else {
                                 printf("\n=== The file was not received ===\n");
+                                // close(SID);
+                                // exit(EXIT_FAILURE);
                             }
 
                             if (strstr(serverMessage, "\r\n")) {

@@ -74,7 +74,8 @@ void *connection(void *arg) {
                     pthread_mutex_lock(&lock_x);
 
                     // Write file to disk
-                    if ((fp = fopen(path, "w")) == NULL) {
+                    fp = fopen(path, "w");
+                    if (fp == NULL) {
                         printf("\nCannot create file\n");
                     }
                     else {
@@ -86,20 +87,29 @@ void *connection(void *arg) {
                         // Get file data
                         while((blockSize = recv(socket, fileBuffer, MAX_BUF, 0)) > 0) {
                             printf("\nfileBuffer: %s\n", fileBuffer);
-                            fwrite(fileBuffer, sizeof(char), blockSize, fp);
+                            printf("\nblockSize: %d\n", blockSize);
+                            int write_sz = fwrite(fileBuffer, sizeof(char), blockSize, fp);
+                            printf("\nwrite_sz: %d\n", write_sz);
                             bzero(fileBuffer, MAX_BUF);
+
+                            fflush(fp);
+                            fflush(stdout);
                         }
+
+                        fclose(fp);
+                        fflush(stdout);
 
                         // Inform the client the data has been received
                         send(socket, recvMessage, strlen(recvMessage), 0);
+                        fflush(stdout);
                     }
-
-                    fclose(fp);
 
                     // TODO: Log it
 
                     // Unblock mutex
                     pthread_mutex_unlock(&lock_x);
+
+                    fflush(stdout);
                 }
                 else {
                     send(socket, errorPath, strlen(errorPath), 0);

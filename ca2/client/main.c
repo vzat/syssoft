@@ -87,8 +87,6 @@ int main (int argc, char ** argv) {
 
                     // Send file
                     if (pathAccepted) {
-                        sleep(1);
-
                         printf("\n=== Sending file... ===\n");
                         bzero(fileBuffer, MAX_BUF);
 

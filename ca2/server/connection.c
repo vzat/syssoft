@@ -140,7 +140,7 @@ void *connection(void *arg) {
                                 fwrite(transferLog, sizeof(char), strlen(transferLog), log_file);
 
                                 free(timestamp);
-                                fclose(fp);
+                                fclose(log_file);
                             }
                         }
                         else {

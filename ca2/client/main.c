@@ -12,6 +12,8 @@ int main (int argc, char ** argv) {
     int authenticated = 0;
     int recvBytes;
     int blockSize;
+    int fileSize = 0;
+
     struct sockaddr_in server;
 
     char username[100];
@@ -22,6 +24,7 @@ int main (int argc, char ** argv) {
     char clientMessage[MAX_BUF + 1];
     char serverMessage[MAX_BUF + 1];
     char fileBuffer[MAX_BUF];
+    char fileSizeBuffer[16];
 
     FILE *fp;
 
@@ -63,7 +66,15 @@ int main (int argc, char ** argv) {
                 path[strcspn(path, "/")] = 0;
 
                 bzero(clientMessage, MAX_BUF);
-                sprintf(clientMessage, "%s/%s", path, filename);
+
+                // Get just the name of the file without the local path
+                char *lastSlashPtr = strrchr(filename, '/');
+                if (lastSlashPtr == NULL) {
+                    sprintf(clientMessage, "%s/%s", path, filename);
+                }
+                else {
+                    sprintf(clientMessage, "%s%s", path, lastSlashPtr);
+                }
 
                 if (send(SID, clientMessage, strlen(clientMessage), 0) == -1) {
                     printf("\n=== Server not reachable ===\n");
@@ -74,11 +85,11 @@ int main (int argc, char ** argv) {
                     while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
                         serverMessage[recvBytes] = 0;
 
-                        if (strstr(serverMessage, "path")) {
+                        if (strstr(serverMessage, "PATH OK")) {
                             pathAccepted = 1;
                         }
                         else {
-                            printf("\n=== Invalid Path ===\n");
+                            printf("\n=== Invalid Filename and/or Path ===\n");
                         }
 
                         if (strstr(serverMessage, "\r\n")) {
@@ -91,38 +102,56 @@ int main (int argc, char ** argv) {
                         printf("\n=== Sending file... ===\n");
                         bzero(fileBuffer, MAX_BUF);
 
-                        // Send file size first so the server knows when to stop
-                        // receving data
+                        // Get filesize
+                        fseek(fp, 0, SEEK_END);
+                        fileSize = ftell(fp);
 
-                        while ((blockSize = fread(fileBuffer, sizeof(char), MAX_BUF, fp)) > 0) {
-                            printf("\nfileBuffer: %s\n: ", fileBuffer);
-                            if (send(SID, fileBuffer, blockSize, 0) < 0) {
-                                printf("\n=== Server not reachable ===\n");
-                                return 1;
-                            }
-                            bzero(fileBuffer, MAX_BUF);
-                        }
+                        // Send filesize
+                        sprintf(fileSizeBuffer, "%d\r\n", fileSize);
+                        send(SID, fileSizeBuffer, strlen(fileSizeBuffer), 0);
 
-                        fclose(fp);
-
-                        // Check if the file was received
+                        // Get server response
                         while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
                             serverMessage[recvBytes] = 0;
-
-                            if (strstr(serverMessage, "recv")) {
-                                printf("\n=== The file was received ===\n");
-                                // close(SID);
-                                // exit(EXIT_SUCCESS);
-                            }
-                            else {
-                                printf("\n=== The file was not received ===\n");
-                                // close(SID);
-                                // exit(EXIT_FAILURE);
-                            }
 
                             if (strstr(serverMessage, "\r\n")) {
                                 break;
                             }
+                        }
+
+                        // Check if the server received the filesize
+                        if (strstr(serverMessage, "SIZE OK") != NULL) {
+                            // Go to the begining of the file
+                            fseek(fp, 0, SEEK_SET);
+
+                            while ((blockSize = fread(fileBuffer, sizeof(char), MAX_BUF, fp)) > 0) {
+                                if (send(SID, fileBuffer, blockSize, 0) < 0) {
+                                    printf("\n=== Server not reachable ===\n");
+                                    return 1;
+                                }
+                                bzero(fileBuffer, MAX_BUF);
+                            }
+
+                            fclose(fp);
+
+                            // Check if the file was received
+                            while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
+                                serverMessage[recvBytes] = 0;
+
+                                if (strstr(serverMessage, "RECV OK")) {
+                                    printf("\n=== The file was received ===\n");
+                                }
+                                else {
+                                    printf("\n=== The file was not received ===\n");
+                                }
+
+                                if (strstr(serverMessage, "\r\n")) {
+                                    break;
+                                }
+                            }
+                        }
+                        else {
+                            printf("\n=== Invalid filesize ===\n");
                         }
                     }
                 }
@@ -147,7 +176,7 @@ int main (int argc, char ** argv) {
             while ((recvBytes = recv(SID, serverMessage, MAX_BUF, 0)) > 0) {
                 serverMessage[recvBytes] = 0;
 
-                if (strstr(serverMessage, "auth")) {
+                if (strstr(serverMessage, "AUTH OK")) {
                     printf("\n=== Authenticated ===\n");
                     authenticated = 1;
                 }

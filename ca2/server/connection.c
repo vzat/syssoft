@@ -16,18 +16,20 @@ void *connection(void *arg) {
     int authenticated = 0;
     int READSIZE;
     int blockSize;
+    int fileSize = 0;
 
     char message[MAX_BUF];
     char line[MAX_BUF];
     char dirname[MAX_BUF];
     char path[MAX_BUF];
     char fileBuffer[MAX_BUF];
+    char fileSizeBuffer[16];
 
-    char *authMessage = "auth\r\n";
-    char *errorAuth = "err\r\n";
-    char *pathMessage = "path\r\n";
-    char *errorPath = "err\r\n";
-    char *recvMessage = "recv\r\n";
+    char *authMessage = "AUTH OK\r\n";
+    char *pathMessage = "PATH OK\r\n";
+    char *sizeMessage = "SIZE OK\r\n";
+    char *recvMessage = "RECV OK\r\n";
+    char *errorMessage = "ERR\r\n";
 
     const char *dirs[5] = {"/", "Sales", "Promotions", "Offers", "Marketing"};
 
@@ -77,6 +79,7 @@ void *connection(void *arg) {
                     fp = fopen(path, "w");
                     if (fp == NULL) {
                         printf("\nCannot create file\n");
+                        send(socket, errorMessage, strlen(errorMessage), 0);
                     }
                     else {
                         bzero(fileBuffer, MAX_BUF);
@@ -84,29 +87,50 @@ void *connection(void *arg) {
                         // Inform the client if the directory name is correct
                         send(socket, pathMessage, strlen(pathMessage), 0);
 
-                        // Get file data
-                        while((blockSize = recv(socket, fileBuffer, MAX_BUF, 0)) > 0) {
-                            printf("\nfileBuffer: %s\n", fileBuffer);
-                            printf("\nblockSize: %d\n", blockSize);
-                            int write_sz = fwrite(fileBuffer, sizeof(char), blockSize, fp);
-                            printf("\nwrite_sz: %d\n", write_sz);
-                            bzero(fileBuffer, MAX_BUF);
+                        // Get file size
+                        while ((blockSize = recv(socket, fileSizeBuffer, 15, 0)) > 0) {
+                            fileSizeBuffer[blockSize] = 0;
 
-                            fflush(fp);
+                            if (strstr(fileSizeBuffer, "\r\n")) {
+                                break;
+                            }
+                        }
+                        fileSize = atoi(fileSizeBuffer);
+
+                        // Get file data
+                        if (fileSize != 0) {
+                            send(socket, sizeMessage, strlen(sizeMessage), 0);
+
+                            // Get file data
+                            int bytesRecv = 0;
+                            while((blockSize = recv(socket, fileBuffer, MAX_BUF, 0)) > 0) {
+                                int write_sz = fwrite(fileBuffer, sizeof(char), blockSize, fp);
+
+                                // The no bytes written to file does not match the bytes received
+                                if (write_sz != blockSize) {
+                                    send(socket, errorMessage, strlen(sizeMessage), 0);
+                                    break;
+                                }
+
+                                bzero(fileBuffer, MAX_BUF);
+
+                                // Add the block size and check if the whole file was sent
+                                bytesRecv += blockSize;
+                                if (bytesRecv >= fileSize) {
+                                    break;
+                                }
+                            }
+
+                            // Inform the client the data has been received
+                            send(socket, recvMessage, strlen(recvMessage), 0);
                             fflush(stdout);
                         }
+                        else {
+                            send(socket, errorMessage, strlen(errorMessage), 0);
+                        }
 
-                        fflush(stdout);
-                        printf("\nBefore fclose()\n");
-
+                        fflush(fp);
                         fclose(fp);
-                        fflush(stdout);
-
-                        printf("\nBefore send\n");
-
-                        // Inform the client the data has been received
-                        send(socket, recvMessage, strlen(recvMessage), 0);
-                        fflush(stdout);
                     }
 
                     // TODO: Log it
@@ -118,7 +142,7 @@ void *connection(void *arg) {
                     fflush(stdout);
                 }
                 else {
-                    send(socket, errorPath, strlen(errorPath), 0);
+                    send(socket, errorMessage, strlen(errorMessage), 0);
                 }
             }
         }
@@ -149,7 +173,7 @@ void *connection(void *arg) {
                 send(socket, authMessage, strlen(authMessage), 0);
             }
             else {
-                send(socket, errorAuth, strlen(errorAuth), 0);
+                send(socket, errorMessage, strlen(errorMessage), 0);
             }
         }
 

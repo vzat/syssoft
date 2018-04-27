@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 #include "macros.h"
+#include "timelib.h"
 
 pthread_mutex_t lock_x;
 
@@ -23,6 +24,8 @@ void *connection(void *arg) {
     char dirname[MAX_BUF];
     char path[MAX_BUF];
     char fileBuffer[MAX_BUF];
+    char transferLog[MAX_BUF];
+    char username[MAX_BUF];
     char fileSizeBuffer[16];
 
     char *authMessage = "AUTH OK\r\n";
@@ -123,7 +126,22 @@ void *connection(void *arg) {
 
                             // Inform the client the data has been received
                             send(socket, recvMessage, strlen(recvMessage), 0);
-                            fflush(stdout);
+
+                            // Log the file transfered
+                            FILE *log_file = fopen(LOG_PATH, "a");
+                            if (log_file == NULL) {
+                                perror("\nCannot open log file\n");
+                            }
+                            else {
+                                char *timestamp = malloc(MAX_BUF);
+                                getCurrentTime(timestamp, MAX_BUF);
+                                sprintf(transferLog, "\nUsername: %s\nModified Page: %s\nTimestamp: %s\n", username, path, timestamp);
+
+                                fwrite(transferLog, sizeof(char), strlen(transferLog), log_file);
+
+                                free(timestamp);
+                                fclose(fp);
+                            }
                         }
                         else {
                             send(socket, errorMessage, strlen(errorMessage), 0);
@@ -132,9 +150,6 @@ void *connection(void *arg) {
                         fflush(fp);
                         fclose(fp);
                     }
-
-                    // TODO: Log it
-                    printf("\nLog\n");
 
                     // Unblock mutex
                     pthread_mutex_unlock(&lock_x);
@@ -160,6 +175,11 @@ void *connection(void *arg) {
 
                 if (strcmp(line, message) == 0) {
                     authenticated = 1;
+
+                    // Store the username
+                    strcpy(username, line);
+                    username[strcspn(username, ":")] = 0;
+
                     break;
                 }
             }

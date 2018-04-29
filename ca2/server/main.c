@@ -55,7 +55,7 @@ int main (int argc, char **argv) {
         // The thread will exit when it's done
         pthread_attr_t attr;
         pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, 1);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
         int rc;
         if ((rc = pthread_create(&client_thread, &attr, connection, (void*) &cs))) {

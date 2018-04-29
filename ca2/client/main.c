@@ -4,11 +4,21 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "macros.h"
 
+int SID;
+
+void sig_handler(int sigNum) {
+    if (sigNum == SIGINT) {
+        printf("\n\n=== Goodbye ===\n");
+        close(SID);
+        exit(EXIT_SUCCESS);
+    }
+}
+
 int main (int argc, char ** argv) {
-    int SID;
     int authenticated = 0;
     int recvBytes;
     int blockSize;
@@ -48,6 +58,10 @@ int main (int argc, char ** argv) {
     }
 
     printf("Successfully connected to the server\n");
+
+    if (signal(SIGINT, sig_handler) == SIG_ERR) {
+      printf("Cannot intercept signal\n");
+    }
 
     while (1) {
         if (authenticated) {
